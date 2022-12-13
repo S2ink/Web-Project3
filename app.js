@@ -6,4 +6,3 @@ let hscale = 2;
 
 canvas.fillStyle = 'black';
 canvas.fillRect(0, 0, width * wscale, height * hscale);
-canvas.fillText(0, 0, 5, "jfkds")
