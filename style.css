@@ -98,6 +98,10 @@ body {
 /* * * * * * * * * * *
 *   Main Sections    *
 * * * * * * * * * * */
+.editor {
+    margin: auto;
+    width: 80%;
+}
 .bubble-section {
     background: rgba(255, 255, 255, 0.6);
     margin: 20px calc(5% + 1em);
