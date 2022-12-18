@@ -78,11 +78,11 @@ class PhysicalBase extends Material {
 
     static diffuse(normal, redirect) {
         redirect.origin = normal.origin;
-        redirect.direction = normal.direction + Vec3.randomInUnitSphere();
+        redirect.direction = Vec3._add(normal.direction, Vec3.randomInUnitSphere());
         if( // if the random direction exactly inverts the normal, reset to normal direction
             Math.abs(redirect.direction.x) < CCT.EPSILON &&
-            Math.abs(redirect.direciton.y) < CCT.EPSILON &&
-            Math.abs(redirect.direciton.z) < CCT.EPSILON
+            Math.abs(redirect.direction.y) < CCT.EPSILON &&
+            Math.abs(redirect.direction.z) < CCT.EPSILON
         ) {
             redirect.direction = normal.direction;
         }
@@ -112,16 +112,22 @@ class PhysicalBase extends Material {
             return this.reflect(src, hit, redirect, gloss);
         }
         let r_out_perp = Vec3._scale(hit.normal.direction, cos_theta).add(src.direction).scale(refr_index);
-        let r_out_para = Vec3._scale(hit.normal.direction, -Math.sqrt(Math.abs(1 - Vec3._dot(r_out_per, r_out_perp))));
+        let r_out_para = Vec3._scale(hit.normal.direction, -Math.sqrt(Math.abs(1 - Vec3._dot(r_out_perp, r_out_perp))));
         redirect.direction = Vec3._add(r_out_perp, r_out_para);
         redirect.origin = hit.normal.origin;
         return true;
     }
 }
 class StaticTexture extends Texture {
-    constructor(color = 0.5) {
+    constructor(r, g, b) {
         super();
-        this.color = new Vec3(color);
+        if(r instanceof CCT.Vector3) {
+            this.color = r.clone();
+        } else if(r && g === undefined && b === undefined) {
+            this.color = new Vec3(r);
+        } else {
+            this.color = new Vec3(r || 0, g || 0, b || 0);
+        }
     }
 
     static DEFAULT = new StaticTexture(0.5);
@@ -139,10 +145,10 @@ class Sphere extends Interactable {
     constructor(pos, rad, material = PhysicalBase.DEFAULT, texture = StaticTexture.DEFAULT, lum = 0) {
         super();
         this.position = new Vec3(pos);
-        this.radius = rad || 0.5;
+        this.radius = rad;
         this.material = material;
         this.texture = texture;
-        this.luminance = lum || 0;
+        this.luminance = lum;
     }
 
     interacts(src, hit, t_min = CCT.EPSILON, t_max = Number.POSITIVE_INFINITY) {
@@ -193,4 +199,35 @@ class Quad extends Interactable {
     constructor() {
         super();
     }
+}
+
+class Scene extends Interactable {
+    constructor(objs = [], clr = new Vec3(0.5)) {
+        super();
+        this.objects = objs;
+        this.sky_color = clr;
+    }
+
+    interacts(ray, hit, t_min = CCT.EPSILON, t_max = Number.POSITIVE_INFINITY) {
+        let temp = new Hit();
+		let ret = null;
+		hit.ptime = t_max;
+		for(let idx = 0; idx < this.objects.length; idx++) {
+			let i = null;
+			if(i = this.objects[idx].interacts(ray, temp, t_min, hit.ptime)) {
+				hit.reverse_intersect = temp.reverse_intersect;
+				hit.ptime = temp.ptime;
+				hit.normal = temp.normal;
+				ret = i;
+			}
+		}
+		return ret;
+    }
+    albedo(hit) {
+        return this.sky_color.clone();
+    }
+    invokeMenu() {
+
+    }
+
 }

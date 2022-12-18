@@ -26,12 +26,17 @@
         <div class="content-backing">
             <!-- The editor; this should be centered and occupy the main part of the page -->
             <div class="editor">
+                <canvas id="frame" width="500px" height="500px"></canvas>
                 <div id="options">  <!-- Editor options: maybe put on the right? -->
-
+                    <form id="basic" style="margin:10px">
+                        <input id="width" placeholder="width -- not implemented"><br>
+                        <input id="height" placeholder="height -- not implemented"><br>
+                        <input id="scale" placeholder="scaling"><br>
+                        <input id="samples" placeholder="samples"><br>
+                        <button id="render" type="button" onclick="paint()">Render!</button>
+                        <button id="resize" type="button">Resize! - not implemented</button>
+                    </form>
                 </div>
-                <canvas id="frame" width="500px" height="500px">
-
-                </canvas>
             </div>
 
         </div>

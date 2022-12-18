@@ -1,9 +1,19 @@
 let element = document.getElementById("frame");
 let canvas = element.getContext('2d');
 let width = 640, height = 480;
-let scale = 1;
+let scale = 4;
+let samples = 20;
 element.width = width;
 element.height = height;
+
+let scale_input = document.getElementById("scale");
+scale_input.setAttribute('value', scale);
+let samples_input = document.getElementById("samples");
+samples_input.setAttribute('value', samples);
+// let width_input = document.getElementById("width");
+// let height_input = document.getElementById("height");
+// let resize_button = document.getElementById("resize");
+// let render_action = document.getElementById("render");
 
 
 let camera = new Camera();
@@ -12,67 +22,55 @@ camera.pos = new Vec3(0,0,0);
 camera.fdir = new Vec3(0,0,1);
 camera.vwidth = width;
 camera.vheight = height;
-console.log(camera.recalcView());
-console.log(camera.recalcProj());
+camera.recalcView();
+camera.recalcProj();
 let directions = camera.getRayDirections();
-console.log(directions);
+directions;
 
 canvas.fillStyle = 'black';
 canvas.fillRect(0, 0, width, height);
 
-scene = {
-	objects:[
-		new Sphere(new Vec3(0, 0, 2), 0.5),
-		new Sphere(new Vec3(0, 3, 1), 0.25, PhysicalBase.DEFAULT, StaticTexture.DEFAULT, 2)
+scene = new Scene(
+	[
+		new Sphere(new Vec3(0, -0.1, 3), 0.6, new PhysicalBase(0, 0, 1, 1.5), new StaticTexture(0.1, 0.7, 0.7)),
+		new Sphere(new Vec3(0, 10, 4), 9.6, PhysicalBase.DEFAULT, new StaticTexture(0.7, 0.6, 0.8)),
+		new Sphere(new Vec3(1, -1, 5), 1, PhysicalBase.DEFAULT, new StaticTexture(0.5, 0.2, 0.2), 7),
+		new Sphere(new Vec3(-2, 0.3, 7), 3, new PhysicalBase(1), new StaticTexture(0.5, 0.7, 0.2), 0)
 	],
-	interacts:function(ray, hit, t_min = CCT.EPSILON, t_max = Number.POSITIVE_INFINITY) {
-		let temp = new Hit();
-		let ret = null;
-		hit.ptime = t_max;
-		for(let idx = 0; idx < this.objects.length; idx++) {
-			let i = null;
-			if(i = this.objects[idx].interacts(ray, temp, t_min, hit.ptime)) {
-				hit.revers_intersect = temp.reverse_intersect;
-				hit.ptime = temp.ptime;
-				hit.normal = temp.normal;
-				ret = i;
-			}
-		}
-		return ret;
-	},
-	albedo:function(hit) {
-		return new Vec3(0.5);
-	}
-};
+	new Vec3(0.05)
+);
 
-function evalRay(scene, ray, bounces) {
+function evalRay(sce, ray, bounces) {
 	let hit = new Hit();
 	let obj = null;
-	if(obj = scene.interacts(ray, hit)) {
-		let lum = obj.emmission(hit);
-		let clr = obj.albedo(hit);
+	if(obj = sce.interacts(ray, hit)) {
+		const lum = obj.emmission(hit);
+		const clr = obj.albedo(hit);
 		if(bounces == 0 || ((clr.x + clr.y + clr.z) / 3 * lum) >= 1) {
 			return clr.scale(lum);
 		}
 		let redirect = new Ray();
 		if(obj.redirect(ray, hit, redirect)) {
-			return clr.iMul(evalRay(scene, redirect, bounces - 1).add(lum));
+			return clr.iMul(evalRay(sce, redirect, bounces - 1).sadd(lum));
 		}
 	}
-	return scene.albedo(hit);
+	return sce.albedo(hit);
 }
 
 function paint() {
+	scale = parseInt(scale_input.value)
+	samples = parseInt(samples_input.value);
 	let ray = new Ray();
 	ray.origin = camera.pos.clone();
 	for(let y = 0; y < height / scale; y++) {
 		for(let x = 0; x < width / scale; x++) {
 
 			ray.direction = directions[x * scale + y * scale * width];	// the direction based on camera view
-			let clr = evalRay(scene, ray, 5);			
-			
-			// let clr = directions[x * scale + y * scale * width];
-			// clr.divideScalar(2).add(new Vec3(0.5));
+			let clr = new Vec3(0);
+			for(let s = 0; s < samples; s++) {
+				clr.add(evalRay(scene, ray, 5).clamp(0, 1));
+			}
+			clr.scale(1 / samples).clamp(0, 1).sqrt();
 			canvas.fillStyle = `rgb(${clr.x * 255},${clr.y * 255},${clr.z * 255})`;
 			canvas.fillRect(x * scale, y * scale, scale, scale);
 			
@@ -86,16 +84,24 @@ function camPaint(d) {
 	directions = camera.getRayDirections();
 	paint();
 }
+// function improve() {
+// 	if(scale != 1) {
+// 		scale /= 2;
+// 	}
+// 	samples *= 10;
+// 	if(scale / 2 < 1 && samples > 100) {
+// 		return;
+// 	}
+// 	console.log("Beggining Render - Scale: " + scale + ", Samples: " + samples);
+// 	paint();
+// 	setTimeout(improve, 100);
+// }
 let start = Date.now();
 paint();
-//setTimeout(camPaintRecurse, 100, new Vec3(0.2,0,0.8));
-// setTimeout(camPaint, 100, new Vec3(0.2,0,0.8));
-// setTimeout(camPaint, 200, new Vec3(0.4,0,0.6));
-// setTimeout(camPaint, 300, new Vec3(0.6,0,0.4));
-// setTimeout(camPaint, 400, new Vec3(0.8,0,0.2));
-// setTimeout(camPaint, 500, new Vec3(1,0,0));
 let end = Date.now();
 console.log(end - start);
+
+//setTimeout(improve, 100);
 
 let mdown = false;
 let lastx = 0, lasty = 0;
@@ -122,12 +128,3 @@ element.addEventListener('mousemove', function(e){
 		}
 	}
 });
-//let rot = 0;
-// setInterval(function() {
-// 	//rot += 0.1;
-// 	//let dir = new Vec3(/*Math.sin(rot)*/0, Math.sin(rot + Math.PI), 1/*Math.cos(rot)*/);
-// 	camPaint(dir);
-// }, 100);
-
-let m = new Mat4(1);
-console.log(m);
