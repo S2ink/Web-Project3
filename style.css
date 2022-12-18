@@ -102,6 +102,13 @@ body {
     margin: auto;
     width: 80%;
 }
+#options {
+    float: left;
+}
+#frame {
+    float: left;
+}
+
 .bubble-section {
     background: rgba(255, 255, 255, 0.6);
     margin: 20px calc(5% + 1em);

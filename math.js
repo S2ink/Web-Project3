@@ -13,15 +13,15 @@ class Vec3 extends CCT.Vector3 {
 
     toArray() { return [this.x, this.y, this.z]; }
     add(v) { // add
-        if(v instanceof CCT.Vector3) {
-            this.x += v.x;
-            this.y += v.y;
-            this.z += v.z;
-        } else {
-            this.x += v;
-            this.y += v;
-            this.z += v;
-        }
+        this.x += v.x;
+        this.y += v.y;
+        this.z += v.z;
+        return this;
+    }
+    sadd(s) {
+        this.x += s;
+        this.y += s;
+        this.z += s;
         return this;
     }
     iMul(v) {
@@ -43,8 +43,21 @@ class Vec3 extends CCT.Vector3 {
         this.z = this.x * v.y - this.y * v.x;
         return this;
     }
+    sqrt() {
+        this.x = Math.sqrt(this.x);
+        this.y = Math.sqrt(this.y);
+        this.z = Math.sqrt(this.z);
+        return this;
+    }
+    clamp(min, max) {
+        this.x = Math.max(Math.min(this.x, max), min);
+        this.y = Math.max(Math.min(this.y, max), min);
+        this.z = Math.max(Math.min(this.z, max), min);
+        return this;
+    }
 
     static _add(a, b) { return new Vec3(a.x + b.x, a.y + b.y, a.z + b.z); }
+    static _sadd(a, s) { return new Vec3(a.x + s, a.y + s, a.z + s); }
     static _sub(a, b) { return new Vec3(a.x - b.x, a.y - b.y, a.z - b.z); }
     static _iMul(a, b) { return new Vec3(a.x * b.x, a.y * b.y, a.z * b.z); } // element-wise multiply
     static _iDiv(a, b) { return new Vec3(a.x / b.x, a.y / b.y, a.z / b.z); } // element-wise divide
@@ -52,6 +65,7 @@ class Vec3 extends CCT.Vector3 {
     static _dot(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
     static _cross(a, b) { return new Vec3().crossVectors(a, b); }
     static _negate(v) { return new Vec3(v).negate(); }
+    static _sqrt(v) { return new Vec3(Math.sqrt(v.x), Math.sqrt(v.y), Math.sqrt(v.z)); }
     static randomInUnitSphere() {
         return new Vec3(
             Math.random() * 2 - 1,
