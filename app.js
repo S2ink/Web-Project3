@@ -35,7 +35,8 @@ scene = new Scene(
 		new Sphere(new Vec3(0, -0.1, 3), 0.6, new PhysicalBase(0, 0, 1, 1.5), new StaticTexture(0.1, 0.7, 0.7)),
 		new Sphere(new Vec3(0, 10, 4), 9.6, PhysicalBase.DEFAULT, new StaticTexture(0.7, 0.6, 0.8)),
 		new Sphere(new Vec3(1, -1, 5), 1, PhysicalBase.DEFAULT, new StaticTexture(0.5, 0.2, 0.2), 7),
-		new Sphere(new Vec3(-2, 0.3, 7), 3, new PhysicalBase(1), new StaticTexture(0.5, 0.7, 0.2), 0)
+		new Sphere(new Vec3(-2, 0.3, 7), 3, PhysicalBase.DEFAULT, new StaticTexture(0.5, 0.7, 0.2)),
+		new Sphere(new Vec3(-1.8, 0, 3), 0.7, new PhysicalBase(0), new StaticTexture(0.7, 0.5, 0.1))
 	],
 	new Vec3(0.05)
 );
@@ -68,7 +69,7 @@ function paint() {
 			ray.direction = directions[x * scale + y * scale * width];	// the direction based on camera view
 			let clr = new Vec3(0);
 			for(let s = 0; s < samples; s++) {
-				clr.add(evalRay(scene, ray, 5).clamp(0, 1));
+				clr.add(evalRay(scene, ray, 5));
 			}
 			clr.scale(1 / samples).clamp(0, 1).sqrt();
 			canvas.fillStyle = `rgb(${clr.x * 255},${clr.y * 255},${clr.z * 255})`;
