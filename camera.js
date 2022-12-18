@@ -3,8 +3,8 @@ class Camera {
 		this.fov = 45.0;	// degrees
 		this.nearclip = 0.1;
 		this.farclip = 100.0;
-		this.pos = new CCT.Vector3(0);
-		this.fdir = new CCT.Vector3(0);		// forward looking direction
+		this.pos = new Vec3(0);
+		this.fdir = new Vec3(0);		// forward looking direction
 
 		this.vwidth = 0;
 		this.vheight = 0;
@@ -28,7 +28,7 @@ class Camera {
 				let xs = x/this.vwidth * 2 - 1;
 				let ys = y/this.vheight * 2 - 1;
 				let target = mat4vec(this.iproject, [xs, ys, 1, 1]);
-				let v3 = new CCT.Vector3().fromArray(target).divideScalar(target[3]);
+				let v3 = new Vec3(target).divideScalar(target[3]).normalize();
 				let v4 = mat4vec(this.iview, [v3.x, v3.y, v3.z, 0]);
 				this.directions[x + y * this.vwidth] = v3.fromArray(v4);
 			}
@@ -37,7 +37,7 @@ class Camera {
 	}
 
 	recalcView() {
-		return this.iview = mat4inverse(lookAt(this.pos, addVec(this.pos, this.fdir), new CCT.Vector3(0, 1, 0)));
+		return this.iview = mat4inverse(lookAt(this.pos, Vec3._add(this.pos, this.fdir), new Vec3(0, 1, 0)));
 	}
 	recalcProj() {
 		return this.iproject = mat4inverse(perspectiveFov(this.fov * Math.PI / 180, this.vwidth, this.vheight, this.nearclip, this.farclip));
@@ -49,8 +49,8 @@ function addVec(a, b) {
 }
 function lookAt(eye, center, up) {
 	const f = center.clone().sub(eye).normalize();
-	const s = f.clone().crossVectors(f, up).normalize();
-	const u = s.clone().crossVectors(s, f);
+	const s = Vec3._cross(f, up).normalize();
+	const u = Vec3._cross(s, f);
 	return [
 		[s.x, s.y, s.z, -s.dot(eye)],
 		[u.x, u.y, u.z, -u.dot(eye)],
