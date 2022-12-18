@@ -5,6 +5,7 @@ let scale = 10;
 element.width = width;
 element.height = height;
 
+
 let camera = new Camera();
 camera.fov = 60;
 camera.pos = new Vec3(0,0,0);
@@ -19,26 +20,24 @@ console.log(directions);
 canvas.fillStyle = 'black';
 canvas.fillRect(0, 0, width, height);
 
-let obj = new Sphere(new Vec3(0, 0, 1), 0.5);
+let obj = new Sphere(new Vec3(0, 0, 2), 0.5);
 
 function paint() {
-	//let ray = new Ray();
-	//ray.origin = camera.pos.clone();
+	let ray = new Ray();
+	ray.origin = camera.pos.clone();
 	for(let y = 0; y < height / scale; y++) {
 		for(let x = 0; x < width / scale; x++) {
 
-			// ray.direction = directions[x + y * width];	// the direction based on camera view
-			// let hit = new Hit();
-			// let clr;
-			// if(obj.interacts(ray, hit) == obj) {
-			// 	clr = new Vec3(0, 1, 0);
-			// } else {
-			// 	clr = new Vec3(0, 0, 0);
-			// }
-			let clr = directions[x * scale + y * scale * width];
-			clr.divideScalar(2).add(new Vec3(0.5));
-			clr.x = 0;
-			clr.z = 0;
+			ray.direction = directions[x * scale + y * scale * width];	// the direction based on camera view
+			let hit = new Hit();
+			let clr;
+			if(obj.interacts(ray, hit) == obj) {
+				clr = new Vec3(0, 1, 0);
+			} else {
+				clr = new Vec3(0, 0, 0);
+			}
+			//let clr = directions[x * scale + y * scale * width];
+			//clr.divideScalar(2).add(new Vec3(0.5));
 			canvas.fillStyle = `rgb(${clr.x * 255},${clr.y * 255},${clr.z * 255})`;
 			canvas.fillRect(x * scale, y * scale, scale, scale);
 			
@@ -84,13 +83,16 @@ element.addEventListener('mousemove', function(e){
 		lastx = x;
 		lasty = y;
 		if(dx != 0 || dy != 0) {
-			
+			console.log(dx + ', ' + dy);
 		}
 	}
 });
 //let rot = 0;
-setInterval(function() {
-	//rot += 0.1;
-	//let dir = new Vec3(/*Math.sin(rot)*/0, Math.sin(rot + Math.PI), 1/*Math.cos(rot)*/);
-	camPaint(dir);
-}, 100);
+// setInterval(function() {
+// 	//rot += 0.1;
+// 	//let dir = new Vec3(/*Math.sin(rot)*/0, Math.sin(rot + Math.PI), 1/*Math.cos(rot)*/);
+// 	camPaint(dir);
+// }, 100);
+
+let m = new Mat4(1);
+console.log(m);
