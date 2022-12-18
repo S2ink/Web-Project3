@@ -90,7 +90,7 @@ class PhysicalBase extends Material {
     }
     static reflect(src, hit, redirect, gloss) {
         gloss = gloss || 0;
-        redirect.direction = hit.normal.direction;
+        redirect.origin = hit.normal.origin;
         redirect.direction = Vec3._sub( // (in - norm * dot(norm, in) * 2) + (random * glossiness)
             src.direction, Vec3._scale(
                 hit.normal.direction,
