@@ -13,9 +13,21 @@ class Vec3 extends CCT.Vector3 {
 
     toArray() { return [this.x, this.y, this.z]; }
     add(v) { // add
-        this.x += v.x;
-        this.y += v.y;
-        this.z += v.z;
+        if(v instanceof CCT.Vector3) {
+            this.x += v.x;
+            this.y += v.y;
+            this.z += v.z;
+        } else {
+            this.x += v;
+            this.y += v;
+            this.z += v;
+        }
+        return this;
+    }
+    iMul(v) {
+        this.x *= v.x;
+        this.y *= v.y;
+        this.z *= v.z;
         return this;
     }
     // addScaled --> super

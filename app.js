@@ -1,7 +1,7 @@
 let element = document.getElementById("frame");
 let canvas = element.getContext('2d');
 let width = 640, height = 480;
-let scale = 10;
+let scale = 1;
 element.width = width;
 element.height = height;
 
@@ -20,7 +20,47 @@ console.log(directions);
 canvas.fillStyle = 'black';
 canvas.fillRect(0, 0, width, height);
 
-let obj = new Sphere(new Vec3(0, 0, 2), 0.5);
+scene = {
+	objects:[
+		new Sphere(new Vec3(0, 0, 2), 0.5),
+		new Sphere(new Vec3(0, 3, 1), 0.25, PhysicalBase.DEFAULT, StaticTexture.DEFAULT, 2)
+	],
+	interacts:function(ray, hit, t_min = CCT.EPSILON, t_max = Number.POSITIVE_INFINITY) {
+		let temp = new Hit();
+		let ret = null;
+		hit.ptime = t_max;
+		for(let idx = 0; idx < this.objects.length; idx++) {
+			let i = null;
+			if(i = this.objects[idx].interacts(ray, temp, t_min, hit.ptime)) {
+				hit.revers_intersect = temp.reverse_intersect;
+				hit.ptime = temp.ptime;
+				hit.normal = temp.normal;
+				ret = i;
+			}
+		}
+		return ret;
+	},
+	albedo:function(hit) {
+		return new Vec3(0.5);
+	}
+};
+
+function evalRay(scene, ray, bounces) {
+	let hit = new Hit();
+	let obj = null;
+	if(obj = scene.interacts(ray, hit)) {
+		let lum = obj.emmission(hit);
+		let clr = obj.albedo(hit);
+		if(bounces == 0 || ((clr.x + clr.y + clr.z) / 3 * lum) >= 1) {
+			return clr.scale(lum);
+		}
+		let redirect = new Ray();
+		if(obj.redirect(ray, hit, redirect)) {
+			return clr.iMul(evalRay(scene, redirect, bounces - 1).add(lum));
+		}
+	}
+	return scene.albedo(hit);
+}
 
 function paint() {
 	let ray = new Ray();
@@ -29,15 +69,10 @@ function paint() {
 		for(let x = 0; x < width / scale; x++) {
 
 			ray.direction = directions[x * scale + y * scale * width];	// the direction based on camera view
-			let hit = new Hit();
-			let clr;
-			if(obj.interacts(ray, hit) == obj) {
-				clr = new Vec3(0, 1, 0);
-			} else {
-				clr = new Vec3(0, 0, 0);
-			}
-			//let clr = directions[x * scale + y * scale * width];
-			//clr.divideScalar(2).add(new Vec3(0.5));
+			let clr = evalRay(scene, ray, 5);			
+			
+			// let clr = directions[x * scale + y * scale * width];
+			// clr.divideScalar(2).add(new Vec3(0.5));
 			canvas.fillStyle = `rgb(${clr.x * 255},${clr.y * 255},${clr.z * 255})`;
 			canvas.fillRect(x * scale, y * scale, scale, scale);
 			

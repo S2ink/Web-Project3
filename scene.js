@@ -22,7 +22,7 @@ class Interactable {
     redirect(src, hit, redirect) {  // Source ray{Ray}, hit point{Hit}, redirected ray{Ray}
         return false;               // returns if redirect happened
     }
-    emmision(hit) { // Hit point{Hit} -- if the UV coords are not generated, they will be within this function, and then used
+    emmission(hit) { // Hit point{Hit} -- if the UV coords are not generated, they will be within this function, and then used
         return 0;
     }
     albedo(hit) {   // Hit point{Hit}
@@ -164,9 +164,9 @@ class Sphere extends Interactable {
         return this;
     }
     redirect(src, hit, redirect) {
-        return this.material ? this.material.redirect(src, hit, redirected) : false;
+        return this.material ? this.material.redirect(src, hit, redirect) : false;
     }
-    emmision(hit) {
+    emmission(hit) {
         return this.luminance;
     }
     albedo(hit) {
