@@ -26,7 +26,7 @@
         <div class="content-backing">
             <!-- The editor; this should be centered and occupy the main part of the page -->
             <div class="editor">
-                <canvas id="frame" width="500px" height="500px"></canvas>
+                <canvas id="frame" width="640" height="480"></canvas>
                 <div id="options">  <!-- Editor options: maybe put on the right? -->
                     <form id="basic" style="margin:10px">
                         <input id="width" placeholder="width -- not implemented"><br>
@@ -47,6 +47,9 @@
             </div>
         </div>
 <!-- js scripts -->
+        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
+            integrity="sha512-zhHQR0/H5SEBL3Wn6yYSaTTZej12z0hVZKOv3TwCUXT1z5qeqGcXJLLrbERYRScEDDpYIJhPC1fk31gqR783iQ=="
+            crossorigin="anonymous"></script>
         <script defer src="3D-collision-detection/collision_detection.js"></script>
         <script defer src="math.js"></script>
         <script defer src="camera.js"></script>
