@@ -1,4 +1,4 @@
-const { vec2, vec3, mat3, mat4 } = glMatrix;
+const { vec2, vec3, vec4, quat, mat2, mat3, mat4 } = glMatrix;
 
 const frame = document.querySelector("#frame");
 const gl = frame.getContext("webgl2") || frame.getContext("webgl") || frame.getContext("experimental-webgl");
@@ -12,7 +12,10 @@ gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 gl.clearColor(0,0,0,1);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
-const view_mat = mat4.lookAt(mat4.create(), [0, 0, 0], [0, 0, 1], [0, 1, 0]);
+let fDir = vec3.fromValues(1, 1, 1);
+let camPos = vec3.fromValues(0, 0, 0);
+const upDir = vec3.fromValues(0,1,0);
+const view_mat = mat4.lookAt(mat4.create(), camPos, fDir, upDir);
 const proj_mat = mat4.perspective(mat4.create(), 60 * Math.PI / 180, width / height, 0.1, 100.0);
 const iview_mat = mat4.invert(mat4.create(), view_mat);
 const iproj_mat = mat4.invert(mat4.create(), proj_mat);
@@ -52,6 +55,7 @@ const fragment_src = `
 		vec3 ray = vec3(iview * vec4(normalize(vec3(target) / target.w), 0));
 		//float r = 1.0 - (gl_FragCoord.x * gl_FragCoord.y / (640.0 * 480.0));
 		//gl_FragColor = vec4(r, gl_FragCoord.y / 480.0, gl_FragCoord.x / 640.0, 1);
+		ray = ray / 2.0 + 0.5;
 		gl_FragColor = vec4(ray.x, ray.y, ray.z, 1);
 	}
 `;
@@ -92,6 +96,44 @@ gl.uniformMatrix4fv(
 );
 
 gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+
+let mdown = false;
+let mPos = vec2.create();
+frame.addEventListener('mousedown', function(e){
+	console.log('Mouse down');
+	let rect = frame.getBoundingClientRect();
+	mPos[0] = e.clientX - rect.left;
+	mPos[1] = e.clientY - rect.top;
+	mdown = true;
+});
+frame.addEventListener('mouseup', function(e){
+	console.log('Mouse up');
+	mdown = false;
+});
+frame.addEventListener('mousemove', function(e){
+	if(mdown) {
+		let rect = frame.getBoundingClientRect();
+		let x = (e.clientX - rect.left) * 0.002 * 0.3;
+		let y = (e.clientY - rect.top) * 0.002 * 0.3;
+		let dx = x - mPos[0];
+		let dy = y - mPos[1];
+		vec2.set(mPos, x, y);
+		if(dx != 0 || dy != 0) {
+			console.log(dx + ', ' + dy);
+			let right = vec3.cross(vec3.create(), fDir, upDir);
+			let q1 = quat.setAxisAngle(quat.create(), right, -dy);
+			let q2 = quat.setAxisAngle(quat.create(), upDir, -dx);
+			let rot = quat.fromValues(
+				q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z,
+				q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y,
+				q1.w * q2.y + q1.y * q2.w + q1.z * q2.x - q1.x * q2.z,
+				q1.w * q2.z + q1.z * q2.w + q1.x * q2.y - q1.y * q2.x
+			);
+			console.log(rot);
+		}
+	}
+});
 
 
 // let element = document.getElementById("frame");
