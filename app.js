@@ -1,3 +1,5 @@
+const { vec2, vec3, mat3, mat4 } = glMatrix;
+
 const frame = document.querySelector("#frame");
 const gl = frame.getContext("webgl2") || frame.getContext("webgl") || frame.getContext("experimental-webgl");
 if(gl === null) {
@@ -12,8 +14,8 @@ gl.clear(gl.COLOR_BUFFER_BIT);
 
 const view_mat = mat4.lookAt(mat4.create(), [0, 0, 0], [0, 0, 1], [0, 1, 0]);
 const proj_mat = mat4.perspective(mat4.create(), 60 * Math.PI / 180, width / height, 0.1, 100.0);
-const iview_mat = mat4.invert(view_mat);
-const iproj_mat = mat4.intert(proj_mat);
+const iview_mat = mat4.invert(mat4.create(), view_mat);
+const iproj_mat = mat4.invert(mat4.create(), proj_mat);
 
 var buffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -44,9 +46,13 @@ const fragment_src = `
 	//varying vec2 frag_ray;
 	uniform mat4 iview, iproj;
 	void main() {
+		vec2 prop = vec2(gl_FragCoord) / vec2(640.0, 480.0);
+		prop = prop * 2.0 - 1.0;
+		vec4 target = iproj * vec4(prop, 1.0, 1.0);
+		vec3 ray = vec3(iview * vec4(normalize(vec3(target) / target.w), 0));
 		//float r = 1.0 - (gl_FragCoord.x * gl_FragCoord.y / (640.0 * 480.0));
 		//gl_FragColor = vec4(r, gl_FragCoord.y / 480.0, gl_FragCoord.x / 640.0, 1);
-		gl_FragColor = vec4(frag_ray, 0, 1);
+		gl_FragColor = vec4(ray.x, ray.y, ray.z, 1);
 	}
 `;
 
@@ -70,6 +76,7 @@ gl.linkProgram(program);
 if(!gl.getProgramParameter(program, gl.LINK_STATUS)) {
 	alert(`Unable to initialize the shader program: ${gl.getProgramInfoLog(program)}`);
 }
+gl.useProgram(program);
 
 const position_loc = gl.getAttribLocation(program, "vertex");
 gl.vertexAttribPointer(position_loc, 2, gl.FLOAT, false, 0, 0);
@@ -83,7 +90,6 @@ gl.uniformMatrix4fv(
 	gl.getUniformLocation(program, "iproj"),
 	false, iproj_mat
 );
-gl.useProgram(program);
 
 gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
