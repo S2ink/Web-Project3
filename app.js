@@ -41,16 +41,69 @@ const fragment_src = `
 	#else
 		precision mediump float;
 	#endif
+	
+	struct Ray {
+		vec3 origin;
+		vec3 direction;
+	};
+	struct Hit {
+		bool reverse_intersect;
+		float time;
+		Ray normal;
+		vec2 uv;
+	};
 
-	vec3 getSourceRay(vec2 proportional, mat4 inv_proj, mat4 inv_view) {
+	struct Sphere {
+		vec3 position;
+		float radius;
+		//float luminance;
+	};
+
+	bool interactsSphere(in Ray ray, in Sphere s, inout Hit hit, float t_min, float t_max) {
+		vec3 o = ray.origin - s.position;
+		float a = dot(ray.direction, ray.direction);
+		float b = 2.0 * dot(o, ray.direction);
+		float c = dot(o, o) - (s.radius * s.radius);
+		float d = (b * b) - (4.0 * a * c);
+		if(d < 0.0) {
+			return false;
+		}
+		hit.time = (sqrt(d) + b) / (-2.0 * a);
+		if(hit.time < t_min || hit.time > t_max) {
+			return false;
+		}
+		hit.normal.origin = ray.direction * hit.time + ray.origin;
+		hit.normal.direction = normalize(hit.normal.origin - s.position);
+		hit.reverse_intersect = dot(hit.normal.direction, ray.direction) > 0.0;
+		if(hit.reverse_intersect) {
+			hit.normal.direction *= -1.0;
+		}
+		return true;
+	}
+
+	vec3 getSourceRay(in vec2 proportional, in mat4 inv_proj, in mat4 inv_view) {
 		vec4 t = inv_proj * vec4( (proportional * 2.0 - 1.0), 1.0, 1.0);
 		return vec3( inv_view * vec4( normalize(vec3(t) / t.w), 0) );
 	}
+//	vec3 evaluateRay(Ray ray, float bounces) {
+//		
+//	}
+
+	Sphere sp = Sphere(vec3(0, 0, 4), 1.0);
+
 	uniform mat4 iview, iproj;
+	uniform vec3 cam_pos;
 	void main() {
 		vec3 ray = getSourceRay(vec2(gl_FragCoord) / vec2(640.0, 480.0), iproj, iview);
-		ray = ray / 2.0 + 0.5;
-		gl_FragColor = vec4(ray.x, ray.y, ray.z, 1);
+		Ray src = Ray(cam_pos, ray);
+		Hit h;
+		if(interactsSphere(src, sp, h, 0.0, 1000000.0)) {
+			gl_FragColor = vec4(1, 0, 0, 1);
+		} else {
+			gl_FragColor = vec4(0, 0, 0, 1);
+		}
+		//ray = ray / 2.0 + 0.5;
+		//gl_FragColor = vec4(ray.x, ray.y, ray.z, 1);
 	}
 `;
 
@@ -88,6 +141,10 @@ gl.uniformMatrix4fv(
 	gl.getUniformLocation(program, "iproj"),
 	false, iproj_mat
 );
+gl.uniform3fv(
+	gl.getUniformLocation(program, "cam_pos"),
+	camPos
+);
 
 gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -111,8 +168,8 @@ frame.addEventListener('mousemove', function(e){
 		let x = (e.clientX - rect.left);
 		let y = (e.clientY - rect.top);
 		//console.log(x, y);
-		let dx = (x - mPos[0]) * 0.002 * 0.3;
-		let dy = (y - mPos[1]) * 0.002 * 0.3;
+		let dx = (x - mPos[0]) * 0.002 * 0.8;
+		let dy = (y - mPos[1]) * 0.002 * 0.8;
 		vec2.set(mPos, x, y);
 		if(dx != 0 || dy != 0) {
 			//console.log(dx + ', ' + dy);
@@ -139,6 +196,7 @@ frame.addEventListener('mousemove', function(e){
 				gl.getUniformLocation(program, "iproj"),
 				false, iproj_mat
 			);
+			// send camera position
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 		}
 	}
