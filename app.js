@@ -12,12 +12,12 @@ gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 gl.clearColor(0,0,0,1);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
-let fDir = vec3.fromValues(1, 1, 1);
+let fDir = vec3.fromValues(1, 0, 1);
 let camPos = vec3.fromValues(0, 0, 0);
 const upDir = vec3.fromValues(0,1,0);
-const view_mat = mat4.lookAt(mat4.create(), camPos, fDir, upDir);
+let view_mat = mat4.lookAt(mat4.create(), camPos, fDir, upDir);
 const proj_mat = mat4.perspective(mat4.create(), 60 * Math.PI / 180, width / height, 0.1, 100.0);
-const iview_mat = mat4.invert(mat4.create(), view_mat);
+let iview_mat = mat4.invert(mat4.create(), view_mat);
 const iproj_mat = mat4.invert(mat4.create(), proj_mat);
 
 var buffer = gl.createBuffer();
@@ -31,11 +31,7 @@ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
 
 const vertex_src = `
 	attribute vec2 vertex;
-	//uniform vec3 eye, ray00, ray01, ray10, ray11;
-	//varying vec3 frag_ray;
 	void main() {
-		//vec2 proportion = vertex * 0.5 + 0.5;
-		//frag_ray = mix(mix(ray00, ray01, proportion.y), mix(ray10, ray11, proportion.y), proportion.x);
 		gl_Position = vec4(vertex, 0, 1);
 	}
 `;
@@ -46,15 +42,13 @@ const fragment_src = `
 		precision mediump float;
 	#endif
 
-	//varying vec2 frag_ray;
+	vec3 getSourceRay(vec2 proportional, mat4 inv_proj, mat4 inv_view) {
+		vec4 t = inv_proj * vec4( (proportional * 2.0 - 1.0), 1.0, 1.0);
+		return vec3( inv_view * vec4( normalize(vec3(t) / t.w), 0) );
+	}
 	uniform mat4 iview, iproj;
 	void main() {
-		vec2 prop = vec2(gl_FragCoord) / vec2(640.0, 480.0);
-		prop = prop * 2.0 - 1.0;
-		vec4 target = iproj * vec4(prop, 1.0, 1.0);
-		vec3 ray = vec3(iview * vec4(normalize(vec3(target) / target.w), 0));
-		//float r = 1.0 - (gl_FragCoord.x * gl_FragCoord.y / (640.0 * 480.0));
-		//gl_FragColor = vec4(r, gl_FragCoord.y / 480.0, gl_FragCoord.x / 640.0, 1);
+		vec3 ray = getSourceRay(vec2(gl_FragCoord) / vec2(640.0, 480.0), iproj, iview);
 		ray = ray / 2.0 + 0.5;
 		gl_FragColor = vec4(ray.x, ray.y, ray.z, 1);
 	}
@@ -114,26 +108,52 @@ frame.addEventListener('mouseup', function(e){
 frame.addEventListener('mousemove', function(e){
 	if(mdown) {
 		let rect = frame.getBoundingClientRect();
-		let x = (e.clientX - rect.left) * 0.002 * 0.3;
-		let y = (e.clientY - rect.top) * 0.002 * 0.3;
-		let dx = x - mPos[0];
-		let dy = y - mPos[1];
+		let x = (e.clientX - rect.left);
+		let y = (e.clientY - rect.top);
+		//console.log(x, y);
+		let dx = (x - mPos[0]) * 0.002 * 0.3;
+		let dy = (y - mPos[1]) * 0.002 * 0.3;
 		vec2.set(mPos, x, y);
 		if(dx != 0 || dy != 0) {
-			console.log(dx + ', ' + dy);
-			let right = vec3.cross(vec3.create(), fDir, upDir);
-			let q1 = quat.setAxisAngle(quat.create(), right, -dy);
-			let q2 = quat.setAxisAngle(quat.create(), upDir, -dx);
-			let rot = quat.fromValues(
-				q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z,
-				q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y,
-				q1.w * q2.y + q1.y * q2.w + q1.z * q2.x - q1.x * q2.z,
-				q1.w * q2.z + q1.z * q2.w + q1.x * q2.y - q1.y * q2.x
+			//console.log(dx + ', ' + dy);
+			const rDir = vec3.cross(vec3.create(), fDir, upDir);
+			let rot = quat.multiply(
+				quat.create(),
+				quat.setAxisAngle(quat.create(), rDir, dy),
+				quat.setAxisAngle(quat.create(), upDir, dx)
 			);
-			console.log(rot);
+			fDir = quaRotate(
+				vec3.create(),
+				quat.normalize(rot, rot),
+				fDir
+			);
+			//console.log(fDir);
+			mat4.lookAt(view_mat, camPos, fDir, upDir);
+			mat4.invert(iview_mat, view_mat);
+
+			gl.uniformMatrix4fv(
+				gl.getUniformLocation(program, "iview"),
+				false, iview_mat
+			);
+			gl.uniformMatrix4fv(
+				gl.getUniformLocation(program, "iproj"),
+				false, iproj_mat
+			);
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 		}
 	}
 });
+
+
+function quaRotate(out, q, v) {
+	let quatv = vec3.fromValues(q[0], q[1], q[2]);
+	let uv = vec3.cross(vec3.create(), quatv, v);
+	let uuv = vec3.cross(vec3.create(), quatv, uv);
+	let ret = vec3.scale(vec3.create(), uv, q[3]);
+	vec3.add(ret, ret, uuv);
+	vec3.scale(ret, ret, 2);
+	return vec3.add(out, ret, v);
+}
 
 
 // let element = document.getElementById("frame");
