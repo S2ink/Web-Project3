@@ -179,12 +179,17 @@ vec3 getSourceRay(in vec2 proportional, in mat4 inv_proj, in mat4 inv_view) {
 // 	Sphere(vec3(-2, 2, 3), 0.3, 10.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0)),
 // 	Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
 // );
-const Sphere objs[5] = Sphere[5](
-	Sphere(vec3(0, 0.1, 3), 0.6, 0.0, vec3(0.1, 0.7, 0.7), Material(0.0, 0.0, 1.0, 1.4)),
+const Sphere objs[10] = Sphere[10](
+	Sphere(vec3(2, -0.1, 3), 0.6, 2.0, vec3(0.5, 0.2, 0.2), Material(1.0, 0.0, 1.0, 1.4)),
+	Sphere(vec3(0, 0.1, 3), 0.6, 0.0, vec3(1,1,1), Material(0.0, 0.0, 1.0, 1.4)),
 	Sphere(vec3(0, -10, 4), 9.6, 0.0, vec3(0.7, 0.6, 0.8), Material(1.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(1, 1, 5), 1.0, 7.0, vec3(0.5, 0.2, 0.2), Material(1.0, 0.0, 0.0, 0.0)),
+	Sphere(vec3(1, 1, 5), 1.0, 2.0, vec3(0.1, 0.7, 0.7), Material(1.0, 0.0, 0.0, 0.0)),
 	Sphere(vec3(-2, -0.3, 7), 3.0, 0.0, vec3(0.5, 0.7, 0.2), Material(1.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(-1.8, 0, 3), 0.7, 0.0, vec3(0.7, 0.5, 0.1), Material(0.0, 0.0, 0.0, 0.0))
+	Sphere(vec3(-1.8, 0, 3), 0.7, 0.0, vec3(0.7, 0.5, 0.1), Material(0.0, 0.0, 0.0, 0.0)),
+	Sphere(vec3(0, 0, 4), 0.5, 0.0, vec3(0, 0.5, 0.5), Material(1.0, 0.0, 1.0, 1.5)),
+	Sphere(vec3(2, 0, 5), 1.6, 0.0, vec3(0.6, 0.5, 0.2), Material(0.0, 0.0, 0.0, 0.0)),
+	Sphere(vec3(-2, 2, 3), 0.3, 10.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0)),
+	Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
 );
 vec3 evalRay(in Ray ray, in int bounces) {
 	vec3 total = vec3(0.0);
@@ -229,17 +234,18 @@ uniform vec3 cam_pos;
 uniform vec2 fsize;
 uniform float realtime;
 uniform float scale;
+uniform float samples;
 out vec4 pixColor;
 void main() {
 	//vec3 ray = getSourceRay(vec2(gl_FragCoord) / vec2(1280.0, 720.0), iproj, iview);
 	Ray src = Ray(cam_pos, vec3(0.0));
 	vec3 clr;
-	for(int i = 0; i < 10; i++) {
+	for(int i = 0; i < int(samples); i++) {
 		float r = random(clr, float(i));
 		src.direction = getSourceRay((vec2(gl_FragCoord) + vec2(r)) / fsize, iproj, iview);
 		clr += evalRay(src, 5);
 	}
-	clr /= 10.0;
+	clr /= samples;
 	pixColor = vec4(sqrt(clr), 1.0);
 	// Hit h;
 	// if(interactsSphere(src, sp, h, 0.0, 1000000.0)) {
@@ -340,7 +346,6 @@ document.body.addEventListener('keydown', function(e){
 		key_states.q |= (e.key.toLowerCase() == 'q');
 		key_states.e |= (e.key.toLowerCase() == 'e');
 		key_states.shift |= (e.key == 'Shift');
-		console.log(e);
 		return false;
 	}
 	return true;
@@ -374,7 +379,9 @@ const frameResize = new ResizeObserver((entries) => {
 	fsize_state.fixed = false;
 });
 frameResize.observe(frame);
+
 let fixed_res_select = document.getElementById("fixed-res");
+let display_current_res = document.getElementById("current-fsize");
 fixed_res_select.addEventListener('change', function(e){
 	let xy = fixed_res_select.value.split('_');
 	let x = parseInt(xy[0]);
@@ -387,6 +394,7 @@ fixed_res_select.addEventListener('change', function(e){
 	}
 });
 
+let samples_ppx = document.getElementById("samples-ppx");
 
 var ltime;
 function renderTick(timestamp) {
@@ -433,6 +441,7 @@ function renderTick(timestamp) {
 			frame.style.width = 'fit-content';
 			frame.style.height = 'fit-content';
 		}
+		display_current_res.innerHTML = width + 'x' + height;
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 		mat4.perspective(proj_mat, 60 * Math.PI / 180, width / height, 0.1, 100.0);
 		mat4.invert(iproj_mat, proj_mat);
@@ -460,6 +469,10 @@ function renderTick(timestamp) {
 			gl.getUniformLocation(program, "realtime"),
 			Date.now() - start_time
 		);
+		gl.uniform1f(
+			gl.getUniformLocation(program, "samples"),
+			parseInt(samples_ppx.value)
+		)
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 	}
 

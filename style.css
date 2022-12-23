@@ -51,7 +51,7 @@ p {
 .nav, .footer {
     overflow: hidden;
 }
-.nav a, .footer p, a, span {
+.nav a, .footer p, .footer a, .footer span {
     padding: calc(1em) calc(1.5em);
     margin: 0;
     text-align: center;
@@ -84,7 +84,7 @@ p {
 .footer {
     margin: 0 5%;
 }
-.footer p, span, a {
+.footer p, .footer span, .footer a {
     font-size: 16px;
     float: left;
     text-align: center;
@@ -118,16 +118,26 @@ p {
 /* * * * * * * * * * *
 *   Main Sections    *
 * * * * * * * * * * */
-.editor {
+
+#editor, .info {
     margin-left: 60px;
     /* margin: auto; */
     /* width: 80%; */
 }
+.info {
+    float: left;
+    clear: left;
+}
+#editor {
+    width: fit-content;
+    height: fit-content;
+}
 #frame {
-    resize:both;
-    overflow:scroll;
-    width:fit-content;
-    height:fit-content;
+    float: left;
+    resize: both;
+    overflow: scroll;
+    width: fit-content;
+    height: fit-content;
     border: 2px solid var(--bg-accent-dark);
 }
 #render {
