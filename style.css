@@ -1,14 +1,31 @@
+/* * * * * * * * *
+*   Theme Vars   *
+* * * * * * * * */
+:root {
+    --bg-accent-dark: rgb(42, 24, 124);
+    --bg-accent-light: rgb(86, 22, 206);
+    --bg-accent-light-hover: rgb(135, 77, 243);
+    --text-accent-dark: rgb(181, 253, 255);
+    --text-accent-dark-hover: rgb(203, 245, 255);
+}
+
+
+
 /* * * * * * *
 *   Basic    *
 * * * * * * */
 html {
     font-family: sans-serif;
+    color: var(--text-accent-dark);
 }
 body {
     margin: 0;
     height: 100%;
     display: flex;
     flex-direction: column;
+}
+p {
+    color: var(--text-accent-dark);
 }
 /* table, td, th {
     border: 2px solid black;
@@ -28,18 +45,17 @@ body {
 *   Top and bottom   *
 * * * * * * * * * * */
 .nav-backing, .footer-backing {
-    background-color: #333;
+    background-color: var(--bg-accent-dark);
     z-index: 2;
 }
 .nav, .footer {
     overflow: hidden;
-    margin: 0 5%;
 }
-.nav a, .footer p {
-    padding: calc(1em + 2px);
+.nav a, .footer p, a, span {
+    padding: calc(1em) calc(1.5em);
     margin: 0;
     text-align: center;
-    color: white;
+    color: var(--text-accent-dark);
     font-size: 20px;
 }
 .nav-backing {
@@ -54,18 +70,22 @@ body {
     transition: background-color 0.25s, color 0.25s;
 }
 .nav a:hover {
-    background-color: gray;
-    color: rgb(119,227,255);
+    background-color: var(--bg-accent-light-hover);
+    color: var(--text-accent-dark-hover);
 }
-.nav a.active {
+/* .nav a.active {
     background-color: green;
     color: transparent;
-}
+} */
 .footer-backing {
     margin-top: auto;
     width: 100%;
 }
-.footer p {
+.footer {
+    margin: 0 5%;
+}
+.footer p, span, a {
+    font-size: 16px;
     float: left;
     text-align: center;
 }
@@ -74,7 +94,7 @@ body {
 *   Header   *
 * * * * * * */
 .header-backing {
-    background: linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(119,227,255,1) 100%);
+    /* background: linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(119,227,255,1) 100%); */
 }
 .header {
     margin: 0;
@@ -89,7 +109,7 @@ body {
 }
 
 .content-backing {
-    background: white;
+    background: var(--bg-accent-light);
     margin: 0;
     padding: 20px 0;
     min-height: 100%;
@@ -99,13 +119,21 @@ body {
 *   Main Sections    *
 * * * * * * * * * * */
 .editor {
-    margin: auto;
-    width: 80%;
-}
-#options {
-    float: left;
+    margin-left: 60px;
+    /* margin: auto; */
+    /* width: 80%; */
 }
 #frame {
+    resize:both;
+    overflow:scroll;
+    width:fit-content;
+    height:fit-content;
+    border: 2px solid var(--bg-accent-dark);
+}
+#render {
+    float: left;
+}
+#options {
     float: left;
 }
 

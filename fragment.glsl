@@ -195,17 +195,20 @@ vec3 evalRay(in Ray ray, in int bounces) {
 
 uniform mat4 iview, iproj;
 uniform vec3 cam_pos;
+uniform vec2 fsize;
+uniform float realtime;
+uniform float scale;
 out vec4 pixColor;
 void main() {
 	//vec3 ray = getSourceRay(vec2(gl_FragCoord) / vec2(1280.0, 720.0), iproj, iview);
 	Ray src = Ray(cam_pos, vec3(0.0));
 	vec3 clr;
-	for(int i = 0; i < 10; i++) {
+	for(int i = 0; i < 20; i++) {
 		float r = random(clr, float(i));
-		src.direction = getSourceRay((vec2(gl_FragCoord) + vec2(r)) / vec2(1280.0, 720.0), iproj, iview);
+		src.direction = getSourceRay((vec2(gl_FragCoord) + vec2(r)) / fsize, iproj, iview);
 		clr += evalRay(src, 5);
 	}
-	clr /= 10.0;
+	clr /= 20.0;
 	pixColor = vec4(sqrt(clr), 1.0);
 	// Hit h;
 	// if(interactsSphere(src, sp, h, 0.0, 1000000.0)) {
