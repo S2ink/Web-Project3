@@ -1,9 +1,6 @@
-[submodule "3D-collision-detection"]
-	path = 3D-collision-detection
-	url = https://github.com/hujianzhe/3D-collision-detection
 [submodule "gl-matrix"]
 	path = gl-matrix
 	url = https://github.com/toji/gl-matrix.git
 [submodule "webgl-path-tracing"]
-	path = webgl-path-tracing
+	path = ref-only/webgl-path-tracing
 	url = https://github.com/evanw/webgl-path-tracing.git
