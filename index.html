@@ -34,22 +34,32 @@
                     <li>Hold either shift to make the camera travel 5x as fast</li>
                 </ul>
                 <br>
-                <p>The frame can be resized by dragging the anchor at the bottom right of the frame (a smaller render can boost performance if that is an issue)</p>
+                <p>The frame can be resized by dragging the anchor at the bottom right of the frame or by selecting a preset resolution from the drop-down (a smaller render can boost performance if that is an issue)</p>
                 <p>The lighting is grainy because the sample count is currently locked at 20, and accumulation is not yet implemented.</p>
+            <!-- The frame and canvas -->
                 <div id="frame">
-                    <canvas id="render" width="1280" height="720"></canvas>
+                    <canvas id="render" width="640" height="480"></canvas>
                 </div>
-                    <!-- Editor options: maybe put on the right? -->
-                <!-- <div id="options">
+            <!-- Editor options: maybe put on the right? -->
+                <div id="options">
                     <form id="basic" style="margin:10px">
-                        <input id="width" placeholder="width -- not implemented"><br>
+                        <!-- <input id="width" placeholder="width -- not implemented"><br>
                         <input id="height" placeholder="height -- not implemented"><br>
                         <input id="scale" placeholder="scaling"><br>
                         <input id="samples" placeholder="samples"><br>
                         <button id="render" type="button" onclick="paint()">Render!</button>
                         <button id="resize" type="button">Resize! - not implemented</button>
+                        <br>
+                        <input type="range" min="1" max="10000" value="10"><br> -->
+                        <select id="fixed-res">
+                            <option value="640_480">640x480 (480p)</option>
+                            <option value="1280_720">1280x720 (720p)</option>
+                            <option value="1920_1080">1920x1080 (1080p)</option>
+                            <option value="2160_1440">2160x1440 (1440p)</option>
+                            <option value="3840_2160">4K (Beefy GPU territory)</option>
+                        </select>
                     </form>
-                </div> -->
+                </div>
             </div>
 
         </div>
@@ -62,7 +72,7 @@
             </div>
         </div>
 <!-- js scripts -->
-        <script defer src="gl-matrix/dist/gl-matrix.js"></script>
+        <script defer src="gl-matrix/dist/gl-matrix-min.js"></script>
         <script defer src="math.js"></script>
         <script defer src="scene.js"></script>
         <script defer src="render.js"></script>

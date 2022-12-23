@@ -234,12 +234,12 @@ void main() {
 	//vec3 ray = getSourceRay(vec2(gl_FragCoord) / vec2(1280.0, 720.0), iproj, iview);
 	Ray src = Ray(cam_pos, vec3(0.0));
 	vec3 clr;
-	for(int i = 0; i < 20; i++) {
+	for(int i = 0; i < 10; i++) {
 		float r = random(clr, float(i));
 		src.direction = getSourceRay((vec2(gl_FragCoord) + vec2(r)) / fsize, iproj, iview);
 		clr += evalRay(src, 5);
 	}
-	clr /= 20.0;
+	clr /= 10.0;
 	pixColor = vec4(sqrt(clr), 1.0);
 	// Hit h;
 	// if(interactsSphere(src, sp, h, 0.0, 1000000.0)) {
@@ -362,6 +362,7 @@ document.body.addEventListener('keyup', function(e){		// technically don't need
 
 let fsize_state = {
 	changed : false,
+	fixed : false,
 	nwidth : 0,
 	nheight : 0
 };
@@ -370,8 +371,21 @@ const frameResize = new ResizeObserver((entries) => {
 	fsize_state.nwidth = size.inlineSize;
 	fsize_state.nheight = size.blockSize;
 	fsize_state.changed = true;
+	fsize_state.fixed = false;
 });
 frameResize.observe(frame);
+let fixed_res_select = document.getElementById("fixed-res");
+fixed_res_select.addEventListener('change', function(e){
+	let xy = fixed_res_select.value.split('_');
+	let x = parseInt(xy[0]);
+	let y = parseInt(xy[1]);
+	if((x > 0 && x != width) || (y > 0 && y != height)) {
+		fsize_state.nwidth = x;
+		fsize_state.nheight = y;
+		fsize_state.changed = true;
+		fsize_state.fixed = true;
+	}
+});
 
 
 var ltime;
@@ -412,6 +426,13 @@ function renderTick(timestamp) {
 		updated = true;
 		canvas.width = width = fsize_state.nwidth;
 		canvas.height = height = fsize_state.nheight;
+		if(fsize_state.fixed) {
+			frame.style.width = width;
+			frame.style.height = height;
+		} else {
+			frame.style.width = 'fit-content';
+			frame.style.height = 'fit-content';
+		}
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 		mat4.perspective(proj_mat, 60 * Math.PI / 180, width / height, 0.1, 100.0);
 		mat4.invert(iproj_mat, proj_mat);
