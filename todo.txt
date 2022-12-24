@@ -2,3 +2,4 @@ Resources:
 0. JS for everything: https://developer.mozilla.org/en-US/docs/Web/JavaScript
 1. Forms for the UI: https://developer.mozilla.org/en-US/docs/Learn/Forms
 2. WebGL for speeeeed: https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API
+3. HTML fancy widgets: https://www.w3schools.com/howto/default.asp
