@@ -31,6 +31,8 @@ const vertex_src = `#version 300 es
 const fragment_src = `#version 300 es
 #define EPSILON 0.00001
 #define PI 3.1415926538
+#define PI2 6.283185307179586
+#define PHI 1.61803398874989484820459
 
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 	precision highp float;
@@ -38,16 +40,76 @@ const fragment_src = `#version 300 es
 	precision mediump float;
 #endif
 
-float r_ = 0.0;
-float random(vec3 scale, float seed) {
-	r_ += 1.0;
-	return fract(sin(dot(gl_FragCoord.xyz + (seed + r_), scale)) * 43758.5453 + (seed + r_));
+
+
+uniform mat4 iview, iproj;
+uniform vec3 cam_pos;
+uniform vec2 fsize;
+uniform float realtime;
+uniform float scale;
+uniform float samples;
+
+
+const vec3 _rc1_ = vec3(12.9898, 78.233, 151.7182);
+const vec3 _rc2_ = vec3(63.7264, 10.873, 623.6736);
+const vec3 _rc3_ = vec3(36.7539, 50.3658, 306.2759);
+float _rseed_ = (PI / PHI);
+float rseed() {
+	_rseed_ += (_rseed_ / realtime);
+	return _rseed_;
 }
+
+// float _gold_noise_2(in vec2 xy, in float seed) {
+// 	return fract(tan(distance(xy * PHI, xy) * seed) * (xy.x + seed));	// add seed at end?
+// }
+// float _gold_noise_3(in vec3 xyz, in float seed) {
+// 	return fract(tan(distance(xyz * PHI, xyz) * seed) * (xyz.x + seed));
+// }
+// float _gold_noise_2_auto(in vec2 xy) {
+// 	float r = _gold_noise_2(xy, _rseed_);
+// 	_rseed_ = sqrt(_rseed_ * r);
+// 	return r;
+// }
+// float _gold_noise_3_auto(in vec3 xyz) {
+// 	float r = _gold_noise_3(xyz, _rseed_);
+// 	_rseed_ = sqrt(_rseed_ * r);
+// 	return r;
+// }
+
+float s_random_gen(in vec3 scale, in float seed) {
+	highp float d = 43758.5453;
+	highp float dt = dot(gl_FragCoord.xyz + seed, scale);
+	highp float sn = mod(dt, PI);
+	return fract(sin(sn) * d);
+}
+float random_gen(in vec3 scale) {
+	return s_random_gen(scale, rseed());
+}
+float srand(in float seed) { return s_random_gen(gl_FragCoord.xyz * realtime, seed); }
+float rand() { return random_gen(gl_FragCoord.xyz * realtime); }
+
+vec3 randVec3() {
+	return (vec3(
+		random_gen(_rc1_),
+		random_gen(_rc2_),
+		random_gen(_rc3_)
+	) * 2.0 - 1.0);
+}
+vec3 srandVec3(in float seed) {
+	return (vec3(
+		s_random_gen(_rc1_, seed),
+		s_random_gen(_rc2_, seed),
+		s_random_gen(_rc3_, seed)
+	) * 2.0 - 1.0);
+}
+vec3 randomUnitVector() { return normalize(randVec3()); }
+vec3 seededRandomUnitVector(in float seed) { return normalize(srandVec3(seed)); }
+
 vec3 cosineWeightedDirection(float seed, vec3 normal) {
-	float u = random(vec3(12.9898, 78.233, 151.7182), seed);
-	float v = random(vec3(63.7264, 10.873, 623.6736), seed);
+	float u = s_random_gen(_rc1_, seed);
+	float v = s_random_gen(_rc2_, seed);
 	float r = sqrt(u);
-	float angle = 6.283185307179586 * v;	// compute basis from normal
+	float angle = PI2 * v;	// compute basis from normal
 	vec3 sdir, tdir;
 	if (abs(normal.x) < .5) {
 		sdir = cross(normal, vec3(1,0,0));
@@ -58,15 +120,15 @@ vec3 cosineWeightedDirection(float seed, vec3 normal) {
 	return r * cos(angle) * sdir + r * sin(angle) * tdir + sqrt(1. - u) * normal;
 }
 vec3 uniformlyRandomDirection(float seed) {
-	float u = random(vec3(12.9898, 78.233, 151.7182), seed);
-	float v = random(vec3(63.7264, 10.873, 623.6736), seed);
+	float u = s_random_gen(_rc1_, seed);
+	float v = s_random_gen(_rc2_, seed);
 	float z = 1.0 - 2.0 * u;
 	float r = sqrt(1.0 - z * z);
-	float angle = 6.283185307179586 * v;
+	float angle = PI2 * v;
 	return vec3(r * cos(angle), r * sin(angle), z);
 }
 vec3 uniformlyRandomVector(float seed) {
-	return uniformlyRandomDirection(seed) * sqrt(random(vec3(36.7539, 50.3658, 306.2759), seed));
+	return uniformlyRandomDirection(seed) * sqrt(s_random_gen(_rc3_, seed));
 }
 
 struct Ray {
@@ -99,7 +161,7 @@ bool _refract(in Ray src, in Hit hit, in float ir, out Ray ret) {
 }
 bool reflectGlossy(in Ray src, in Hit hit, out Ray ret, float gloss) {
 	ret.origin = hit.normal.origin;
-	ret.direction = reflect(src.direction, hit.normal.direction) + (uniformlyRandomDirection(hit.time) * gloss);
+	ret.direction = reflect(src.direction, hit.normal.direction) + (uniformlyRandomVector(rseed()) * gloss);
 	return dot(ret.direction, hit.normal.direction) > 0.0;
 }
 float reflectance(float cos, float ir) {
@@ -111,7 +173,7 @@ bool refractGlossy(in Ray src, in Hit hit, in float ir, out Ray ret, float gloss
 	if(!hit.reverse_intersect) {
 		ir = 1. / ir;
 	}
-	float r = random(src.direction * hit.normal.direction, hit.time);
+	float r = rand();
 	if ((ir * sin_theta) > 1.0 || (reflectance(cos_theta, ir) > r)) {
 		return reflectGlossy(src, hit, ret, gloss);
 	}
@@ -123,11 +185,12 @@ bool refractGlossy(in Ray src, in Hit hit, in float ir, out Ray ret, float gloss
 }
 bool diffuse(in Hit hit, out Ray ret) {
 	ret.origin = hit.normal.origin;
-	ret.direction = cosineWeightedDirection(hit.time, hit.normal.direction);
+	//ret.direction = cosineWeightedDirection(rseed(), hit.normal.direction);
+	ret.direction = hit.normal.direction + uniformlyRandomVector(rseed());		// ha, my method is better
 	return true;
 }
 bool redirectRay(in Ray src, in Hit hit, in Material mat, out Ray ret) {
-	float rand = random(vec3(36.7539, 50.3658, 306.2759) * src.direction, hit.time);
+	float rand = rand();
 	if(rand < mat.roughness) {
 		return diffuse(hit, ret);
 	} else if(rand < mat.transparency) {
@@ -229,32 +292,17 @@ vec3 evalRay(in Ray ray, in int bounces) {
 	return total;
 }
 
-uniform mat4 iview, iproj;
-uniform vec3 cam_pos;
-uniform vec2 fsize;
-uniform float realtime;
-uniform float scale;
-uniform float samples;
 out vec4 pixColor;
 void main() {
-	//vec3 ray = getSourceRay(vec2(gl_FragCoord) / vec2(1280.0, 720.0), iproj, iview);
 	Ray src = Ray(cam_pos, vec3(0.0));
 	vec3 clr;
 	for(int i = 0; i < int(samples); i++) {
-		float r = random(clr, float(i));
+		float r = rand();
 		src.direction = getSourceRay((vec2(gl_FragCoord) + vec2(r)) / fsize, iproj, iview);
 		clr += evalRay(src, 5);
 	}
 	clr /= samples;
 	pixColor = vec4(sqrt(clr), 1.0);
-	// Hit h;
-	// if(interactsSphere(src, sp, h, 0.0, 1000000.0)) {
-	// 	gl_FragColor = vec4(h.normal.direction * 0.5 + 0.5, 1);
-	// } else {
-	// 	gl_FragColor = vec4(0, 0, 0, 1);
-	// }
-	//ray = ray / 2.0 + 0.5;
-	//gl_FragColor = vec4(ray.x, ray.y, ray.z, 1);
 }
 `;
 
@@ -290,6 +338,10 @@ gl.uniform2fv(
 gl.uniform1f(
 	gl.getUniformLocation(program, "realtime"),
 	Date.now() - start_time
+);
+gl.uniform1f(
+	gl.getUniformLocation(program, "samples"),
+	10.0
 );
 gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -373,10 +425,12 @@ let fsize_state = {
 };
 const frameResize = new ResizeObserver((entries) => {
 	const size = entries[0].contentBoxSize[0];
-	fsize_state.nwidth = size.inlineSize;
-	fsize_state.nheight = size.blockSize;
-	fsize_state.changed = true;
-	fsize_state.fixed = false;
+	if(size.inlineSize != width || size.blockSize != height) {
+		fsize_state.nwidth = size.inlineSize;
+		fsize_state.nheight = size.blockSize;
+		fsize_state.changed = true;
+		fsize_state.fixed = false;
+	}
 });
 frameResize.observe(frame);
 
@@ -440,6 +494,7 @@ function renderTick(timestamp) {
 		} else {
 			frame.style.width = 'fit-content';
 			frame.style.height = 'fit-content';
+			fixed_res_select.value = "Custom";
 		}
 		display_current_res.innerHTML = width + 'x' + height;
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -475,6 +530,11 @@ function renderTick(timestamp) {
 		)
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 	}
+	// gl.uniform1f(
+	// 	gl.getUniformLocation(program, "realtime"),
+	// 	Date.now() - start_time
+	// );
+	// gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
 	window.requestAnimationFrame(renderTick);
 }
