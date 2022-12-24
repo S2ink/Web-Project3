@@ -22,6 +22,23 @@ let proj_mat = mat4.perspective(mat4.create(), 60 * Math.PI / 180, width / heigh
 let iview_mat = mat4.invert(mat4.create(), view_mat);
 let iproj_mat = mat4.invert(mat4.create(), proj_mat);
 
+const fb_vertex_src = `//#version 300 es
+attribute vec3 vertex;
+varying vec2 texCoord;
+void main() {
+	texCoord = vertex.xy * 0.5 + 0.5;
+	gl_Position = vec4(vertex, 1.0);
+}
+`;
+const fb_fragment_src = `//#version 300 es
+precision highp float;
+varying vec2 texCoord;
+uniform sampler2D texture;
+void main() {
+	gl_FragColor = texture2D(texture, texCoord);
+}
+`;
+
 const vertex_src = `#version 300 es
 	in vec2 vertex;
 	void main() {
@@ -42,12 +59,14 @@ const fragment_src = `#version 300 es
 
 
 
+uniform sampler2D acc_frame;
 uniform mat4 iview, iproj;
 uniform vec3 cam_pos;
 uniform vec2 fsize;
 uniform float realtime;
 uniform float scale;
 uniform float samples;
+uniform float acc_weight;
 
 
 const vec3 _rc1_ = vec3(12.9898, 78.233, 151.7182);
@@ -295,6 +314,7 @@ vec3 evalRay(in Ray ray, in int bounces) {
 out vec4 pixColor;
 void main() {
 	Ray src = Ray(cam_pos, vec3(0.0));
+	vec3 previous = texture(acc_frame, gl_FragCoord.xy / fsize).rgb;
 	vec3 clr;
 	for(int i = 0; i < int(samples); i++) {
 		float r = rand();
@@ -302,10 +322,14 @@ void main() {
 		clr += evalRay(src, 5);
 	}
 	clr /= samples;
-	pixColor = vec4(sqrt(clr), 1.0);
+	pixColor = vec4(mix(sqrt(clr), previous, acc_weight), 1.0);
 }
 `;
 
+const frender = linkProgram( gl,
+	compileShader(gl, fb_vertex_src, gl.VERTEX_SHADER),
+	compileShader(gl, fb_fragment_src, gl.FRAGMENT_SHADER)
+);
 const program = linkProgram( gl,
 	compileShader(gl, vertex_src, gl.VERTEX_SHADER),
 	compileShader(gl, fragment_src, gl.FRAGMENT_SHADER)
@@ -318,6 +342,66 @@ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([1, 1,  -1, 1,  1, -1,  -1, -1])
 const vertex_pos = gl.getAttribLocation(program, "vertex");
 gl.vertexAttribPointer(vertex_pos, 2, gl.FLOAT, false, 0, 0);
 gl.enableVertexAttribArray(vertex_pos);
+
+
+
+function getTextureUnit(gl) {
+	let type = gl.UNSIGNED_BYTE;
+	// if (gl.getExtension('EXT_color_buffer_half_float')) {
+	// 	const ext = gl.getExtension('OES_texture_half_float');
+	// 	type = ext.HALF_FLOAT_OES;
+	// }
+	if (gl.getExtension('WEBGL_color_buffer_float')) {
+		gl.getExtension('OES_texture_float');
+		type = gl.FLOAT;
+	}
+	return type;
+}
+const textbuff_type = getTextureUnit(gl);
+
+function genTexture(gl, w, h) {
+	let t = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, t);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, textbuff_type, null);
+	gl.bindTexture(gl.TEXTURE_2D, null);
+	return t;
+}
+
+let accumulater = {
+	framebuff : gl.createFramebuffer(),
+	textures : [
+		genTexture(gl, width, height),
+		genTexture(gl, width, height)
+	],
+	samples : 0,
+	mixWeight() { return this.samples / (this.samples + 1); },
+	resetSamples() { this.samples = 0; },
+	regenTextures(w, h) {
+		gl.deleteTexture(this.textures[0]);
+		gl.deleteTexture(this.textures[1]);
+		this.textures[0] = genTexture(gl, w, h);
+		this.textures[1] = genTexture(gl, w, h);
+		this.resetSamples();
+	},
+	renderToTexture(trace_program) {
+		gl.useProgram(trace_program);
+		gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuff);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.textures[1], 0);
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+		this.textures.reverse();
+		this.samples++;
+	},
+	renderTextureToFrame(render_program) {
+		gl.useProgram(render_program);
+		gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+	}
+};
 
 gl.uniformMatrix4fv(
 	gl.getUniformLocation(program, "iview"),
@@ -343,7 +427,12 @@ gl.uniform1f(
 	gl.getUniformLocation(program, "samples"),
 	10.0
 );
-gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+gl.uniform1f(
+	gl.getUniformLocation(program, "acc_weight"),
+	accumulater.mixWeight()
+);
+accumulater.renderToTexture(program);
+accumulater.renderTextureToFrame(frender);
 
 
 
@@ -449,6 +538,7 @@ fixed_res_select.addEventListener('change', function(e){
 });
 
 let samples_ppx = document.getElementById("samples-ppx");
+let accumulated_frames = document.getElementById("accumulated-frames");
 
 var ltime;
 function renderTick(timestamp) {
@@ -496,6 +586,7 @@ function renderTick(timestamp) {
 			frame.style.height = 'fit-content';
 			fixed_res_select.value = "Custom";
 		}
+		accumulater.regenTextures(width, height);
 		display_current_res.innerHTML = width + 'x' + height;
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 		mat4.perspective(proj_mat, 60 * Math.PI / 180, width / height, 0.1, 100.0);
@@ -503,6 +594,8 @@ function renderTick(timestamp) {
 		fsize_state.changed = false;
 	}
 
+	let sppx = parseInt(samples_ppx.value);
+	gl.useProgram(program);
 	if(updated) {
 		gl.uniformMatrix4fv(
 			gl.getUniformLocation(program, "iview"),
@@ -521,15 +614,24 @@ function renderTick(timestamp) {
 			vec2.fromValues(width, height)
 		);
 		gl.uniform1f(
+			gl.getUniformLocation(program, "samples"),
+			sppx
+		);
+		accumulater.resetSamples();
+	}
+	if(accumulater.samples * sppx < 10000) {
+		gl.uniform1f(
 			gl.getUniformLocation(program, "realtime"),
 			Date.now() - start_time
 		);
 		gl.uniform1f(
-			gl.getUniformLocation(program, "samples"),
-			parseInt(samples_ppx.value)
-		)
-		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+			gl.getUniformLocation(program, "acc_weight"),
+			accumulater.mixWeight()
+		);
+		accumulater.renderToTexture(program);
+		accumulater.renderTextureToFrame(frender);
 	}
+	accumulated_frames.innerHTML = accumulater.samples * sppx;
 	// gl.uniform1f(
 	// 	gl.getUniformLocation(program, "realtime"),
 	// 	Date.now() - start_time

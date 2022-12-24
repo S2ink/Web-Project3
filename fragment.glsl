@@ -130,7 +130,7 @@ bool _refract(in Ray src, in Hit hit, in float ir, out Ray ret) {
 }
 bool reflectGlossy(in Ray src, in Hit hit, out Ray ret, float gloss) {
 	ret.origin = hit.normal.origin;
-	ret.direction = reflect(src.direction, hit.normal.direction) + (uniformlyRandomDirection(hit.time) * gloss);
+	ret.direction = reflect(src.direction, hit.normal.direction) + (uniformlyRandomVector(rseed()) * gloss);
 	return dot(ret.direction, hit.normal.direction) > 0.0;
 }
 float reflectance(float cos, float ir) {
@@ -155,7 +155,7 @@ bool refractGlossy(in Ray src, in Hit hit, in float ir, out Ray ret, float gloss
 bool diffuse(in Hit hit, out Ray ret) {
 	ret.origin = hit.normal.origin;
 	//ret.direction = cosineWeightedDirection(rseed(), hit.normal.direction);
-	ret.direction = hit.normal.direction + uniformlyRandomDirection(rseed());		// ha, my method is better
+	ret.direction = hit.normal.direction + uniformlyRandomVector(rseed());		// ha, my method is better
 	return true;
 }
 bool redirectRay(in Ray src, in Hit hit, in Material mat, out Ray ret) {
@@ -216,8 +216,8 @@ const Sphere objs[10] = Sphere[10](
 	Sphere(vec3(0, 0.1, 3), 0.6, 0.0, vec3(1,1,1), Material(0.0, 0.0, 1.0, 1.4)),
 	Sphere(vec3(0, -10, 4), 9.6, 0.0, vec3(0.7, 0.6, 0.8), Material(1.0, 0.0, 0.0, 0.0)),
 	Sphere(vec3(1, 1, 5), 1.0, 2.0, vec3(0.1, 0.7, 0.7), Material(1.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(3, -0.3, 5), 3.0, 0.0, vec3(0.5, 0.7, 0.2), Material(1.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(-1.8, 0, 3), 0.7, 0.0, vec3(0.7, 0.5, 0.1), Material(1.0, 0.0, 0.0, 0.0)),
+	Sphere(vec3(-2, -0.3, 7), 3.0, 0.0, vec3(0.5, 0.7, 0.2), Material(1.0, 0.0, 0.0, 0.0)),
+	Sphere(vec3(-1.8, 0, 3), 0.7, 0.0, vec3(0.7, 0.5, 0.1), Material(0.0, 0.0, 0.0, 0.0)),
 	Sphere(vec3(0, 0, 4), 0.5, 0.0, vec3(0, 0.5, 0.5), Material(1.0, 0.0, 1.0, 1.5)),
 	Sphere(vec3(2, 0, 5), 1.6, 0.0, vec3(0.6, 0.5, 0.2), Material(0.0, 0.0, 0.0, 0.0)),
 	Sphere(vec3(-2, 2, 3), 0.3, 10.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0)),
