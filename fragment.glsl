@@ -11,12 +11,14 @@
 
 
 
+uniform sampler2D acc_frame;
 uniform mat4 iview, iproj;
 uniform vec3 cam_pos;
 uniform vec2 fsize;
 uniform float realtime;
 uniform float scale;
 uniform float samples;
+uniform float acc_weight;
 
 
 const vec3 _rc1_ = vec3(12.9898, 78.233, 151.7182);
@@ -24,7 +26,7 @@ const vec3 _rc2_ = vec3(63.7264, 10.873, 623.6736);
 const vec3 _rc3_ = vec3(36.7539, 50.3658, 306.2759);
 float _rseed_ = (PI / PHI);
 float rseed() {
-	_rseed_ += (_rseed_ / realtime);
+	_rseed_ += (fract(sqrt(realtime)));
 	return _rseed_;
 }
 
@@ -211,7 +213,7 @@ vec3 getSourceRay(in vec2 proportional, in mat4 inv_proj, in mat4 inv_view) {
 // 	Sphere(vec3(-2, 2, 3), 0.3, 10.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0)),
 // 	Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
 // );
-const Sphere objs[10] = Sphere[10](
+const Sphere objs[9] = Sphere[9](
 	Sphere(vec3(2, -0.1, 3), 0.6, 2.0, vec3(0.5, 0.2, 0.2), Material(1.0, 0.0, 1.0, 1.4)),
 	Sphere(vec3(0, 0.1, 3), 0.6, 0.0, vec3(1,1,1), Material(0.0, 0.0, 1.0, 1.4)),
 	Sphere(vec3(0, -10, 4), 9.6, 0.0, vec3(0.7, 0.6, 0.8), Material(1.0, 0.0, 0.0, 0.0)),
@@ -220,8 +222,8 @@ const Sphere objs[10] = Sphere[10](
 	Sphere(vec3(-1.8, 0, 3), 0.7, 0.0, vec3(0.7, 0.5, 0.1), Material(0.0, 0.0, 0.0, 0.0)),
 	Sphere(vec3(0, 0, 4), 0.5, 0.0, vec3(0, 0.5, 0.5), Material(1.0, 0.0, 1.0, 1.5)),
 	Sphere(vec3(2, 0, 5), 1.6, 0.0, vec3(0.6, 0.5, 0.2), Material(0.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(-2, 2, 3), 0.3, 10.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
+	Sphere(vec3(-2, 2, 3), 0.3, 20.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0))
+	//Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
 );
 vec3 evalRay(in Ray ray, in int bounces) {
 	vec3 total = vec3(0.0);
@@ -264,6 +266,7 @@ vec3 evalRay(in Ray ray, in int bounces) {
 out vec4 pixColor;
 void main() {
 	Ray src = Ray(cam_pos, vec3(0.0));
+	vec3 previous = texture(acc_frame, gl_FragCoord.xy / fsize).rgb;
 	vec3 clr;
 	for(int i = 0; i < int(samples); i++) {
 		float r = rand();
@@ -271,5 +274,5 @@ void main() {
 		clr += evalRay(src, 5);
 	}
 	clr /= samples;
-	pixColor = vec4(sqrt(clr), 1.0);
+	pixColor = vec4(mix(sqrt(clr), previous, acc_weight), 1.0);
 }
