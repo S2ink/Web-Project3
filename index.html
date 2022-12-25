@@ -32,8 +32,7 @@
                     <li>Drag the mouse in the direction you want the camera to turn.</li>
                     <li>Hold either shift to make the camera travel 5x as fast</li>
                 </ul>
-                <p>The frame can be resized by dragging the anchor at the bottom right of the frame or by selecting a preset resolution from the drop-down (a smaller render can boost performance if that is an issue)</p>
-                <p>Increase the sample count to get a less and less grainy render (although this decreases performance exponentially)</p>
+                <p>The frame can be resized by dragging the anchor at the bottom right of the frame or by selecting a preset resolution from the drop-down.</p>
             </div>
             <!-- The editor; this should be centered and occupy the main part of the page -->
             <div id="editor">
@@ -61,8 +60,9 @@
                             <option value="2160_1440">2160x1440 (1440p)</option>
                             <option value="3840_2160">4K (Beefy GPU territory)</option>
                             <option value="Custom">Custom (Placeholder)</option>
-                        </select><br>
-                        <p>Samples Per Pixel:</p>
+                        </select>
+                        <button type="button" onclick="fullCanvas()">Fullscreen</button><br>
+                        <p>Samples Per Pixel [Per Frame]:</p>
                         <input id="samples-ppx" value="10">
                         <p>Accumulated Samples: <span id="accumulated-frames">0</span></p>
                     </form>
@@ -70,9 +70,13 @@
             </div>
 
             <div class="info">
-                <h2>Notes:</h2>
+                <h2>Notes/Tips:</h2>
                 <ul>
-                    <li>Accidentally highlighting text when dragging the camera around can cause funky movement behavior.</li>
+                    <li>When holding a key down and dis/re-selecting the canvas with a mouse, those inputs will not be available until also released and re-pressed (usually not a big deal).</li>
+                    <li>Accidentally highlighting text when dragging the camera around can cause funky movement behavior (try fullscreen mode for large camera movements).</li>
+                    <li>[Currently] different value of samples/pixel/frame yield different results because of the way that frames are accumulated and composited.</li>
+                    <li>Lower resolutions and samples/pixel/frame will result in better framerate, but in the case of the latter, longer convergence time.</li>
+                    <li>Sometimes the 10000 sample limit is not enought to allow full convergence -- there will probably be a slider for this limit in the future.</li>
                 </ul>
             </div>
 

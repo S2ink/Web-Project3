@@ -1,13 +1,15 @@
-const canvas = document.querySelector("#render");
+const canvas = document.getElementById("render");
 const frame = document.getElementById("frame");
 const gl = canvas.getContext("webgl2") || canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
 if(gl === null) {
 	alert("Error: WebGL is unsupported.");
 }
-let width, height, scale = 2;
+console.log("WebGL Version: " + gl.getParameter(gl.VERSION));
+
+let width, height;
 canvas.width = width = 640;
 canvas.height = height = 480;
-const start_time = Date.now();
+const start_time = performance.now();
 gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 gl.clearColor(0,0,0,1);
 gl.clear(gl.COLOR_BUFFER_BIT);
@@ -34,16 +36,18 @@ const fb_fragment_src = `//#version 300 es
 precision highp float;
 varying vec2 texCoord;
 uniform sampler2D texture;
+//uniform float total_samples;
 void main() {
+	//gl_FragColor = vec4(sqrt(texture2D(texture, texCoord).rgb / total_samples), 1.0);
 	gl_FragColor = texture2D(texture, texCoord);
 }
 `;
 
 const vertex_src = `#version 300 es
-	in vec2 vertex;
-	void main() {
-		gl_Position = vec4(vertex, 0, 1);
-	}
+in vec2 vertex;
+void main() {
+	gl_Position = vec4(vertex, 0, 1);
+}
 `;
 const fragment_src = `#version 300 es
 #define EPSILON 0.00001
@@ -74,7 +78,7 @@ const vec3 _rc2_ = vec3(63.7264, 10.873, 623.6736);
 const vec3 _rc3_ = vec3(36.7539, 50.3658, 306.2759);
 float _rseed_ = (PI / PHI);
 float rseed() {
-	_rseed_ += (_rseed_ / realtime);
+	_rseed_ += (fract(sqrt(realtime)));
 	return _rseed_;
 }
 
@@ -261,7 +265,7 @@ vec3 getSourceRay(in vec2 proportional, in mat4 inv_proj, in mat4 inv_view) {
 // 	Sphere(vec3(-2, 2, 3), 0.3, 10.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0)),
 // 	Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
 // );
-const Sphere objs[10] = Sphere[10](
+const Sphere objs[9] = Sphere[9](
 	Sphere(vec3(2, -0.1, 3), 0.6, 2.0, vec3(0.5, 0.2, 0.2), Material(1.0, 0.0, 1.0, 1.4)),
 	Sphere(vec3(0, 0.1, 3), 0.6, 0.0, vec3(1,1,1), Material(0.0, 0.0, 1.0, 1.4)),
 	Sphere(vec3(0, -10, 4), 9.6, 0.0, vec3(0.7, 0.6, 0.8), Material(1.0, 0.0, 0.0, 0.0)),
@@ -270,8 +274,8 @@ const Sphere objs[10] = Sphere[10](
 	Sphere(vec3(-1.8, 0, 3), 0.7, 0.0, vec3(0.7, 0.5, 0.1), Material(0.0, 0.0, 0.0, 0.0)),
 	Sphere(vec3(0, 0, 4), 0.5, 0.0, vec3(0, 0.5, 0.5), Material(1.0, 0.0, 1.0, 1.5)),
 	Sphere(vec3(2, 0, 5), 1.6, 0.0, vec3(0.6, 0.5, 0.2), Material(0.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(-2, 2, 3), 0.3, 10.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
+	Sphere(vec3(-2, 2, 3), 0.3, 20.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0))
+	//Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
 );
 vec3 evalRay(in Ray ray, in int bounces) {
 	vec3 total = vec3(0.0);
@@ -326,14 +330,8 @@ void main() {
 }
 `;
 
-const frender = linkProgram( gl,
-	compileShader(gl, fb_vertex_src, gl.VERTEX_SHADER),
-	compileShader(gl, fb_fragment_src, gl.FRAGMENT_SHADER)
-);
-const program = linkProgram( gl,
-	compileShader(gl, vertex_src, gl.VERTEX_SHADER),
-	compileShader(gl, fragment_src, gl.FRAGMENT_SHADER)
-);
+const frender = buildProgram(gl, fb_vertex_src, fb_fragment_src);
+const program = buildProgram(gl, vertex_src, fragment_src);
 gl.useProgram(program);
 
 var buffer = gl.createBuffer();
@@ -345,26 +343,28 @@ gl.enableVertexAttribArray(vertex_pos);
 
 
 
-function getTextureUnit(gl) {
-	let type = gl.UNSIGNED_BYTE;
-	// if (gl.getExtension('EXT_color_buffer_half_float')) {
-	// 	const ext = gl.getExtension('OES_texture_half_float');
-	// 	type = ext.HALF_FLOAT_OES;
-	// }
-	if (gl.getExtension('WEBGL_color_buffer_float')) {
-		gl.getExtension('OES_texture_float');
-		type = gl.FLOAT;
-	}
-	return type;
-}
-const textbuff_type = getTextureUnit(gl);
+// function getTextureUnit(gl) {	// maybe handle older webgl versions in the future?
+// 	let type = gl.UNSIGNED_BYTE;
+// 	// if (gl.getExtension('EXT_color_buffer_half_float')) {
+// 	// 	const ext = gl.getExtension('OES_texture_half_float');
+// 	// 	type = ext.HALF_FLOAT_OES;
+// 	// }
+// 	if (gl.getExtension('WEBGL_color_buffer_float')) {
+// 		gl.getExtension('OES_texture_float');
+// 		type = gl.FLOAT;
+// 	}
+// 	return type;
+// }
+// const textbuff_type = getTextureUnit(gl);
+gl.getExtension('EXT_color_buffer_float');
 
 function genTexture(gl, w, h) {
 	let t = gl.createTexture();
+	//let array = new Float32Array(w * h * 4);
 	gl.bindTexture(gl.TEXTURE_2D, t);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, textbuff_type, null);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);	// <-- textbuff_type (can always use float in webgl2)
 	gl.bindTexture(gl.TEXTURE_2D, null);
 	return t;
 }
@@ -376,7 +376,7 @@ let accumulater = {
 		genTexture(gl, width, height)
 	],
 	samples : 0,
-	mixWeight() { return this.samples / (this.samples + 1); },
+	mixWeight(sppx) { return this.samples / (this.samples + sppx); },
 	resetSamples() { this.samples = 0; },
 	regenTextures(w, h) {
 		gl.deleteTexture(this.textures[0]);
@@ -385,7 +385,7 @@ let accumulater = {
 		this.textures[1] = genTexture(gl, w, h);
 		this.resetSamples();
 	},
-	renderToTexture(trace_program) {
+	renderToTexture(trace_program, sppx) {
 		gl.useProgram(trace_program);
 		gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuff);
@@ -394,7 +394,7 @@ let accumulater = {
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
 		this.textures.reverse();
-		this.samples++;
+		this.samples += sppx;
 	},
 	renderTextureToFrame(render_program) {
 		gl.useProgram(render_program);
@@ -421,7 +421,7 @@ gl.uniform2fv(
 );
 gl.uniform1f(
 	gl.getUniformLocation(program, "realtime"),
-	Date.now() - start_time
+	performance.now() - start_time
 );
 gl.uniform1f(
 	gl.getUniformLocation(program, "samples"),
@@ -429,9 +429,9 @@ gl.uniform1f(
 );
 gl.uniform1f(
 	gl.getUniformLocation(program, "acc_weight"),
-	accumulater.mixWeight()
+	accumulater.mixWeight(10.0)
 );
-accumulater.renderToTexture(program);
+accumulater.renderToTexture(program, 10.0);
 accumulater.renderTextureToFrame(frender);
 
 
@@ -491,7 +491,7 @@ document.body.addEventListener('keydown', function(e){
 	}
 	return true;
 });
-document.body.addEventListener('keyup', function(e){		// technically don't need
+document.body.addEventListener('keyup', function(e){
 	if(key_states.move_enabled) {
 		key_states.w &= (e.key.toLowerCase() != 'w');
 		key_states.a &= (e.key.toLowerCase() != 'a');
@@ -509,14 +509,16 @@ document.body.addEventListener('keyup', function(e){		// technically don't need
 let fsize_state = {
 	changed : false,
 	fixed : false,
+	fullscreen : false,
 	nwidth : 0,
 	nheight : 0
 };
 const frameResize = new ResizeObserver((entries) => {
 	const size = entries[0].contentBoxSize[0];
-	if(size.inlineSize != width || size.blockSize != height) {
-		fsize_state.nwidth = size.inlineSize;
-		fsize_state.nheight = size.blockSize;
+	const x = size.inlineSize, y = size.blockSize;
+	if((x && x != width) || (y && y != height)) {
+		fsize_state.nwidth = x;
+		fsize_state.nheight = y;
 		fsize_state.changed = true;
 		fsize_state.fixed = false;
 	}
@@ -526,16 +528,31 @@ frameResize.observe(frame);
 let fixed_res_select = document.getElementById("fixed-res");
 let display_current_res = document.getElementById("current-fsize");
 fixed_res_select.addEventListener('change', function(e){
-	let xy = fixed_res_select.value.split('_');
-	let x = parseInt(xy[0]);
-	let y = parseInt(xy[1]);
-	if((x > 0 && x != width) || (y > 0 && y != height)) {
+	const xy = fixed_res_select.value.split('_');
+	const x = parseInt(xy[0]);
+	const y = parseInt(xy[1]);
+	if((x && x != width) || (y && y != height)) {
 		fsize_state.nwidth = x;
 		fsize_state.nheight = y;
 		fsize_state.changed = true;
 		fsize_state.fixed = true;
 	}
 });
+
+function fullCanvas() {
+	//if (!document.fullscreenElement) {
+	canvas.requestFullscreen().catch((err) => {
+		alert(`Error attempting to enable fullscreen mode: ${err.message} (${err.name})`);
+	});
+	// } else {
+	// 	document.exitFullscreen();
+	// }
+}
+document.addEventListener('fullscreenchange', function(e){
+	fsize_state.fullscreen = !!document.fullscreenElement;
+	fsize_state.changed = true;
+});
+
 
 let samples_ppx = document.getElementById("samples-ppx");
 let accumulated_frames = document.getElementById("accumulated-frames");
@@ -576,15 +593,22 @@ function renderTick(timestamp) {
 	}
 	if(fsize_state.changed) {
 		updated = true;
-		canvas.width = width = fsize_state.nwidth;
-		canvas.height = height = fsize_state.nheight;
-		if(fsize_state.fixed) {
-			frame.style.width = width;
-			frame.style.height = height;
+		if(fsize_state.fullscreen) {
+			fsize_state.nwidth = width;		// cache old size
+			fsize_state.nheight = height;
+			canvas.width = width = window.screen.width;
+			canvas.height = height = window.screen.height;
 		} else {
-			frame.style.width = 'fit-content';
-			frame.style.height = 'fit-content';
-			fixed_res_select.value = "Custom";
+			canvas.width = width = fsize_state.nwidth;
+			canvas.height = height = fsize_state.nheight;
+			if(fsize_state.fixed) {
+				frame.style.width = width;
+				frame.style.height = height;
+			} else {
+				frame.style.width = 'fit-content';
+				frame.style.height = 'fit-content';
+				fixed_res_select.value = "Custom";
+			}
 		}
 		accumulater.regenTextures(width, height);
 		display_current_res.innerHTML = width + 'x' + height;
@@ -619,19 +643,25 @@ function renderTick(timestamp) {
 		);
 		accumulater.resetSamples();
 	}
-	if(accumulater.samples * sppx < 10000) {
+	if(accumulater.samples < 10000) {
 		gl.uniform1f(
 			gl.getUniformLocation(program, "realtime"),
-			Date.now() - start_time
+			performance.now() - start_time
 		);
 		gl.uniform1f(
 			gl.getUniformLocation(program, "acc_weight"),
-			accumulater.mixWeight()
+			accumulater.mixWeight(sppx)
 		);
-		accumulater.renderToTexture(program);
+		accumulater.renderToTexture(program, sppx);
+		// accumulater.samples += sppx;
+		// gl.useProgram(frender);
+		// gl.uniform1f(
+		// 	gl.getUniformLocation(frender, "total_samples"),
+		// 	accumulater.samples
+		// );
 		accumulater.renderTextureToFrame(frender);
 	}
-	accumulated_frames.innerHTML = accumulater.samples * sppx;
+	accumulated_frames.innerHTML = accumulater.samples;
 	// gl.uniform1f(
 	// 	gl.getUniformLocation(program, "realtime"),
 	// 	Date.now() - start_time
