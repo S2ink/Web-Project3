@@ -24,6 +24,7 @@
         </div> -->
 <!-- The main content container -->
         <div class="content-backing">
+
             <div class="info">
                 <h2>Controls:</h2>
                 <p>While the mouse is clicked on the viewport and held...</p>
@@ -34,7 +35,8 @@
                 </ul>
                 <p>The frame can be resized by dragging the anchor at the bottom right of the frame or by selecting a preset resolution from the drop-down.</p>
             </div>
-            <!-- The editor; this should be centered and occupy the main part of the page -->
+
+        <!-- The editor; this should be centered and occupy the main part of the page -->
             <div id="editor">
             <!-- The frame and canvas -->
                 <div id="frame">
@@ -43,16 +45,8 @@
             <!-- Editor options: maybe put on the right? -->
                 <div id="options">
                     <form id="basic" style="margin:10px">
-                        <!-- <input id="width" placeholder="width -- not implemented"><br>
-                        <input id="height" placeholder="height -- not implemented"><br>
-                        <input id="scale" placeholder="scaling"><br>
-                        <input id="samples" placeholder="samples"><br>
-                        <button id="render" type="button" onclick="paint()">Render!</button>
-                        <button id="resize" type="button">Resize! - not implemented</button>
-                        <br>
-                        <input type="range" min="1" max="10000" value="10"><br> -->
-                        <p>Frame Size: (<span id="current-fsize">640x480</span>)</p>
-                        <select id="fixed-res">
+                        <p style="margin-bottom:2px">Render Size: (<span id="fsize-display">640x480</span>)</p>
+                        <select id="fixed-fsize-select">
                             <option value="640_480">640x480 (480p)</option>
                             <option value="960_540">960x540 (1/2x1080p)</option>
                             <option value="1280_720">1280x720 (720p)</option>
@@ -60,11 +54,18 @@
                             <option value="2160_1440">2160x1440 (1440p)</option>
                             <option value="3840_2160">4K (Beefy GPU territory)</option>
                             <option value="Custom">Custom (Placeholder)</option>
-                        </select>
-                        <button type="button" onclick="fullCanvas()">Fullscreen</button><br>
-                        <p>Samples Per Pixel [Per Frame]:</p>
-                        <input id="samples-ppx" value="10">
-                        <p>Accumulated Samples: <span id="accumulated-frames">0</span></p>
+                        </select><button type="button" onclick="canvas.requestFullscreen()">Fullscreen</button>
+
+                        <p style="margin-bottom:2px">Camera FOV:</p>
+                        <input id="cam-fov" type="number" value="60" min="1" max="180" style="width:120px">
+                        <!-- <input id="cam-nearclip" type="number" value="0.1" style="width:80px">
+                        <input id="cam-farclip" type="number" value="100" min="0.1" style="width:80px"> -->
+                        
+                        <p style="margin-bottom:2px">Samples Per Pixel [Per Frame]:</p>
+                        <input id="samples-ppx" type="number" value="10" min="1" max="1000" style="width:120px">
+                        
+                        <p style="margin-bottom:2px">Accumulation Limit: (Completed: <span id="total-samples-display">0</span>)</p>
+                        <input id="samples-limit" type="number" value="10000" min="1" max="1000000" style="width:120px">
                     </form>
                 </div>
             </div>
@@ -90,7 +91,7 @@
             </div>
         </div>
 <!-- js scripts -->
-        <script defer src="gl-matrix/dist/gl-matrix-min.js"></script>
+        <script defer src="gl-matrix/dist/gl-matrix.js"></script>
         <script defer src="math.js"></script>
         <script defer src="scene.js"></script>
         <script defer src="render.js"></script>
