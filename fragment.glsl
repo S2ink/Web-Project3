@@ -1,24 +1,43 @@
-#define EPSILON 0.00001
-#define PI 3.1415926538
-#define PI2 6.283185307179586
-#define PHI 1.61803398874989484820459
-
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 	precision highp float;
 #else
 	precision mediump float;
 #endif
 
+#define SPHERE_ARRAY_LEN 64	// len for each interactable type... (set by scene)
+//#define MATERIALS_ARRAY_LEN 64	// set by scene - if we want to save memory by compacting reused materials
+//#define TEXTURES_ARRAY_LEN 64		// set by scene - if we ever add dynamic texturing
 
+#define EPSILON 0.00001		// 10e-5
+#define PI 3.14159265358979
+#define PI2 6.283185307179586
+#define PHI 1.61803398874989484820459
+
+struct Material {
+	float roughness;
+	float glossiness;
+	float transparency;
+	float refraction_index;
+};
+struct Sphere {
+	vec3 position;
+	float radius;
+	float luminance;	// this could be a map	(Texture)
+	vec3 albedo;		// and this				(Texture)
+	Material mat;
+};
 
 uniform sampler2D acc_frame;
 uniform mat4 iview, iproj;
 uniform vec3 cam_pos;
 uniform vec2 fsize;
 uniform float realtime;
-uniform float scale;
 uniform float samples;
-uniform float acc_weight;
+uniform float bounces;
+
+uniform Sphere spheres[SPHERE_ARRAY_LEN];
+uniform float sphere_count;
+uniform vec3 skycolor;
 
 
 const vec3 _rc1_ = vec3(12.9898, 78.233, 151.7182);
@@ -101,6 +120,15 @@ vec3 uniformlyRandomDirection(float seed) {
 vec3 uniformlyRandomVector(float seed) {
 	return uniformlyRandomDirection(seed) * sqrt(s_random_gen(_rc3_, seed));
 }
+vec3 randomUnitVec_Reject(float seed) {
+	while(true) {
+		vec3 test = srandVec3(seed);
+		if(dot(test, test) <= 1.0) {
+			return test;
+		}
+		seed += 1.0;
+	}
+}
 
 struct Ray {
 	vec3 origin;
@@ -110,14 +138,7 @@ struct Hit {
 	bool reverse_intersect;
 	float time;
 	Ray normal;
-	vec2 uv;
-};
-
-struct Material {
-	float roughness;
-	float glossiness;
-	float transparency;
-	float refraction_index;
+	//vec2 uv;
 };
 
 bool _reflect(in Ray src, in Hit hit, out Ray ret) {
@@ -125,9 +146,9 @@ bool _reflect(in Ray src, in Hit hit, out Ray ret) {
 	ret.direction = reflect(src.direction, hit.normal.direction);
 	return dot(ret.direction, hit.normal.direction) > 0.0;
 }
-bool _refract(in Ray src, in Hit hit, in float ir, out Ray ret) {
+bool _refract(in Ray src, in Hit hit, out Ray ret, in float ratio) {
 	ret.origin = hit.normal.origin;
-	ret.direction = refract(src.direction, hit.normal.direction, ir);
+	ret.direction = refract(src.direction, hit.normal.direction, ratio);
 	return true;
 }
 bool reflectGlossy(in Ray src, in Hit hit, out Ray ret, float gloss) {
@@ -135,17 +156,22 @@ bool reflectGlossy(in Ray src, in Hit hit, out Ray ret, float gloss) {
 	ret.direction = reflect(src.direction, hit.normal.direction) + (uniformlyRandomVector(rseed()) * gloss);
 	return dot(ret.direction, hit.normal.direction) > 0.0;
 }
-float reflectance(float cos, float ir) {
-	return pow( ((1. - ir) / (1. + ir)), 2. ) + (1. - ir) * pow(1. - cos, 5.);
+float reflectance_approx(float cos, float ratio) {
+	float r0 = (1.0 - ratio) / (1.0 + ratio);
+	r0 = r0 * r0;
+	return r0 + (1.0 - r0) * pow(1.0 - cos, 5.0);
 }
-bool refractGlossy(in Ray src, in Hit hit, in float ir, out Ray ret, float gloss) {
+float reflectance_exact(float cosi, float cost, float n1, float n2) {
+	float r1 = (n1*cosi - n2*cost) / (n1*cosi + n2*cost);
+	float r2 = (n2*cosi - n1*cost) / (n2*cosi + n1*cost);
+	return (r1*r1 + r2*r2) / 2.0;
+}
+bool refractGlossy(in Ray src, in Hit hit, out Ray ret, in float ir, in float gloss) {
+	if(!hit.reverse_intersect) { ir = 1.0 / ir; }
 	float cos_theta = min(dot(-src.direction, hit.normal.direction), 1.0);
 	float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
-	if(!hit.reverse_intersect) {
-		ir = 1. / ir;
-	}
 	float r = rand();
-	if ((ir * sin_theta) > 1.0 || (reflectance(cos_theta, ir) > r)) {
+	if ((ir * sin_theta) > 1.0 || (reflectance_approx(cos_theta, ir) > r)) {
 		return reflectGlossy(src, hit, ret, gloss);
 	}
 	vec3 r_out_perp = ir * (src.direction + cos_theta * hit.normal.direction);
@@ -157,7 +183,8 @@ bool refractGlossy(in Ray src, in Hit hit, in float ir, out Ray ret, float gloss
 bool diffuse(in Hit hit, out Ray ret) {
 	ret.origin = hit.normal.origin;
 	//ret.direction = cosineWeightedDirection(rseed(), hit.normal.direction);
-	ret.direction = hit.normal.direction + uniformlyRandomVector(rseed());		// ha, my method is better
+	//ret.direction = hit.normal.direction + uniformlyRandomVector(rseed());
+	ret.direction = hit.normal.direction + randomUnitVec_Reject(rseed());		// ha, my method is better
 	return true;
 }
 bool redirectRay(in Ray src, in Hit hit, in Material mat, out Ray ret) {
@@ -165,40 +192,36 @@ bool redirectRay(in Ray src, in Hit hit, in Material mat, out Ray ret) {
 	if(rand < mat.roughness) {
 		return diffuse(hit, ret);
 	} else if(rand < mat.transparency) {
-		return refractGlossy(src, hit, mat.refraction_index, ret, mat.glossiness);
+		return refractGlossy(src, hit, ret, mat.refraction_index, mat.glossiness);
 	} else {
 		return reflectGlossy(src, hit, ret, mat.glossiness);
 	}
 }
 
 
-struct Sphere {
-	vec3 position;
-	float radius;
-	float luminance;
-	vec3 albedo;
-	Material mat;
-};
-
 bool interactsSphere(in Ray ray, in Sphere s, inout Hit hit, float t_min, float t_max) {
 	vec3 o = ray.origin - s.position;
 	float a = dot(ray.direction, ray.direction);
-	float b = 2.0 * dot(o, ray.direction);
+	float b = dot(o, ray.direction);
 	float c = dot(o, o) - (s.radius * s.radius);
-	float d = (b * b) - (4.0 * a * c);
+	float d = (b * b) - (a * c);
 	if(d < 0.0) {
 		return false;
 	}
-	hit.time = (sqrt(d) + b) / (-2.0 * a);
+	hit.time = (-sqrt(d) - b) / a;
 	if(hit.time < t_min || hit.time > t_max) {
-		return false;
+		hit.time  = (sqrt(d) - b) / a;
+		if(hit.time < t_min || hit.time > t_max) {
+			return false;
+		}
 	}
 	hit.normal.origin = ray.direction * hit.time + ray.origin;
-	hit.normal.direction = normalize(hit.normal.origin - s.position);
+	hit.normal.direction = (hit.normal.origin - s.position) / s.radius;
 	hit.reverse_intersect = dot(hit.normal.direction, ray.direction) > 0.0;
 	if(hit.reverse_intersect) {
 		hit.normal.direction *= -1.0;
 	}
+	//hit.normal.origin += hit.normal.direction * EPSILON;	// no accidental re-collision
 	return true;
 }
 
@@ -214,15 +237,15 @@ vec3 getSourceRay(in vec2 proportional, in mat4 inv_proj, in mat4 inv_view) {
 // 	Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
 // );
 const Sphere objs[9] = Sphere[9](
-	Sphere(vec3(2, -0.1, 3), 0.6, 2.0, vec3(0.5, 0.2, 0.2), Material(1.0, 0.0, 1.0, 1.4)),
-	Sphere(vec3(0, 0.1, 3), 0.6, 0.0, vec3(1,1,1), Material(0.0, 0.0, 1.0, 1.4)),
-	Sphere(vec3(0, -10, 4), 9.6, 0.0, vec3(0.7, 0.6, 0.8), Material(1.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(1, 1, 5), 1.0, 2.0, vec3(0.1, 0.7, 0.7), Material(1.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(-2, -0.3, 7), 3.0, 0.0, vec3(0.5, 0.7, 0.2), Material(1.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(-1.8, 0, 3), 0.7, 0.0, vec3(0.7, 0.5, 0.1), Material(0.0, 0.0, 0.0, 0.0)),
+	Sphere(vec3(2, -0.1, 3), 0.6, 2.0, vec3(0.5, 0.2, 0.2), Material(1.0, 0.01, 1.0, 1.4)),
+	Sphere(vec3(-3, 0.2, 3), 0.4, 0.0, vec3(1,1,1), Material(0.0, 0.0, 1.0, 1.5)),
+	Sphere(vec3(0, -10, 4), 9.6, 0.0, vec3(0.7, 0.6, 0.8), Material(1.0, 0.5, 0.0, 0.0)),
+	Sphere(vec3(1, 1, 5), 1.0, 2.0, vec3(0.1, 0.7, 0.7), Material(1.0, 0.01, 0.0, 0.0)),
+	Sphere(vec3(-2, -0.3, 7), 3.0, 0.0, vec3(0.5, 0.7, 0.2), Material(1.0, 0.1, 0.0, 0.0)),
+	Sphere(vec3(-0.8, 0, 3), 0.7, 0.0, vec3(0.7, 0.5, 0.1), Material(0.0, 0.01, 0.0, 0.0)),
 	Sphere(vec3(0, 0, 4), 0.5, 0.0, vec3(0, 0.5, 0.5), Material(1.0, 0.0, 1.0, 1.5)),
-	Sphere(vec3(2, 0, 5), 1.6, 0.0, vec3(0.6, 0.5, 0.2), Material(0.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(-2, 2, 3), 0.3, 20.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0))
+	Sphere(vec3(2, 0, 5), 1.6, 0.0, vec3(0.2, 0.7, 0.3), Material(0.0, 0.01, 0.0, 0.0)),
+	Sphere(vec3(-3, 7, 4), 0.3, 100.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0))
 	//Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
 );
 vec3 evalRay(in Ray ray, in int bounces) {
@@ -243,9 +266,17 @@ vec3 evalRay(in Ray ray, in int bounces) {
 			}
 		}
 		if(interaction) {
+			// if(b == bounces - 1) {
+			// 	Ray redirect;
+			// 	redirectRay(current, hit, objs[idx].mat, redirect);
+			// 	return redirect.direction * 0.5 + 0.5;
+			// }
 			float lum = objs[idx].luminance;
 			vec3 clr = objs[idx].albedo;
 			if(b == 0 || ((clr.x + clr.y + clr.z) / 3. * lum) >= 1.) {
+				// Ray redirect;
+				// redirectRay(current, hit, objs[idx].mat, redirect);
+				// return redirect.direction * 0.5 + 0.5;
 				total += cache * clr * lum;
 				return total;
 			}
@@ -263,16 +294,14 @@ vec3 evalRay(in Ray ray, in int bounces) {
 	return total;
 }
 
-out vec4 pixColor;
+out vec4 fragColor;
 void main() {
 	Ray src = Ray(cam_pos, vec3(0.0));
-	vec3 previous = texture(acc_frame, gl_FragCoord.xy / fsize).rgb;
-	vec3 clr;
+	vec3 clr = texture(acc_frame, gl_FragCoord.xy / fsize).rgb;
 	for(int i = 0; i < int(samples); i++) {
 		float r = rand();
 		src.direction = getSourceRay((vec2(gl_FragCoord) + vec2(r)) / fsize, iproj, iview);
-		clr += evalRay(src, 5);
+		clr += evalRay(src, int(bounces));
 	}
-	clr /= samples;
-	pixColor = vec4(mix(sqrt(clr), previous, acc_weight), 1.0);
+	fragColor = vec4(clr, 1.0);
 }
