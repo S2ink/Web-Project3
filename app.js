@@ -16,6 +16,7 @@ let width = canvas.width;	// used to default set to 640x480
 let height = canvas.height;
 let fov = 60;
 const c_near = 0.1, c_far = 100;	// these don't do anything because we aren't using traditional rendering and don't have clip space
+let bounces = 5;
 
 const upDir = vec3.fromValues(0, 1, 0);
 let fDir = vec3.fromValues(0, 0, 1);
@@ -43,11 +44,12 @@ const ui = {
 	elem_fsize_selector : document.getElementById("fixed-fsize-select"),
 	elem_fsize_display : document.getElementById("fsize-display"),
 	elem_cam_fov : document.getElementById("cam-fov"),
-	elem_cam_nearclip : document.getElementById("cam-nearclip"),
-	elem_cam_farclip : document.getElementById("cam-farclip"),
+	// elem_cam_nearclip : document.getElementById("cam-nearclip"),
+	// elem_cam_farclip : document.getElementById("cam-farclip"),
 	elem_samples_ppx : document.getElementById("samples-ppx"),
 	elem_samples_display : document.getElementById("total-samples-display"),
 	elem_samples_limit : document.getElementById("samples-limit"),
+	elem_bounce_limit : document.getElementById("bounce-limit"),
 
 	keys : {
 		w : false,
@@ -67,8 +69,8 @@ const ui = {
 		changed : false,
 		fixed : false,
 		fullscreen : false,
-		_width : 0,		// these are both a cache for fullscreen and a buffer for resize events
-		_height : 0,
+		_width : width,		// these are both a cache for fullscreen and a buffer for resize events
+		_height : height,
 	},
 	resize_listener : null
 
@@ -79,6 +81,7 @@ ui.updateFov = function() { return fov != (fov = parseFloat(this.elem_cam_fov.va
 // ui.updateFarClip = function() { return c_far != (c_far = parseFloat(this.elem_cam_farclip.value)); }
 ui.sampleRate = function() { return parseInt(this.elem_samples_ppx.value); }
 ui.sampleLimit = function() { return parseInt(this.elem_samples_limit.value); }
+ui.updateBounceLimit = function() { return bounces != (bounces = parseInt(this.elem_bounce_limit.value)); }
 
 ui.keys.reset = function() {
 	this.w = this.a = this.s = this.d = this.q = this.e = this.shift = this.ctrl = false;
@@ -94,9 +97,14 @@ ui.zeroMouse = function() {
 	vec2.copy(this.mouse_xy, this.mouse_xy2);
 }
 ui.onMouseDown = function(e) {
-	ui.enable_camera = true;
-	vec2.copy(ui.mouse_xy2, vec2.set(
-		ui.mouse_xy, e.clientX, e.clientY) );
+	if(ui.keys.ctrl) {
+		// handle select object
+		console.log("selection");
+	} else {
+		ui.enable_camera = true;
+		vec2.copy(ui.mouse_xy2, vec2.set(
+			ui.mouse_xy, e.clientX, e.clientY) );
+	}
 }
 ui.onMouseMove = function(e) {
 	if(ui.enable_camera) {
@@ -111,6 +119,7 @@ ui.onMouseUp = function(e) {
 	}
 }
 ui.onKeyDown = function(e) {	// add this and all other to .prototype if this object is every reused
+	ui.keys.ctrl |= (e.key == 'Control');
 	if(ui.enable_camera) {
 		const k = e.key;
 		ui.keys.w |= (k == 'w' || k == 'W');
@@ -120,12 +129,12 @@ ui.onKeyDown = function(e) {	// add this and all other to .prototype if this obj
 		ui.keys.q |= (k == 'q' || k == 'Q');
 		ui.keys.e |= (k == 'e' || k == 'E');
 		ui.keys.shift |= (k == 'Shift');
-		ui.keys.ctrl |= (k == 'Ctrl');
 		return false;
 	}
 	return true;
 }
 ui.onKeyUp = function(e) {
+	ui.keys.ctrl &= (e.key != 'Control');
 	if(ui.enable_camera) {
 		const k = e.key;
 		ui.keys.w &= (k != 'w' && k != 'W');
@@ -135,7 +144,6 @@ ui.onKeyUp = function(e) {
 		ui.keys.q &= (k != 'q' && k != 'Q');
 		ui.keys.e &= (k != 'e' && k != 'E');
 		ui.keys.shift &= (k != 'Shift');
-		ui.keys.ctrl &= (k != 'Ctrl');
 		return false;
 	}
 	return true;
@@ -227,7 +235,9 @@ const uni_cam_pos = gl.getUniformLocation(gl_trace, "cam_pos");
 const uni_fsize = gl.getUniformLocation(gl_trace, "fsize");
 const uni_realtime = gl.getUniformLocation(gl_trace, "realtime");
 const uni_samples = gl.getUniformLocation(gl_trace, "samples");
+const uni_bounces = gl.getUniformLocation(gl_trace, "bounces");
 const uni_acc_samples = gl.getUniformLocation(gl_trace, "acc_samples");
+const uni_total_samples = gl.getUniformLocation(gl_render, "total_samples");
 
 
 var ltime;
@@ -236,7 +246,7 @@ function renderTick(timestamp) {
 	ltime = timestamp;
 
 	let needs_reproject = ui.updateFov();
-	let updated = needs_reproject;
+	let updated = needs_reproject || ui.updateBounceLimit();
 	if(ui.enable_camera) {
 		if(ui.keys.anyRaw()) {
 			updated = true;
@@ -284,7 +294,6 @@ function renderTick(timestamp) {
 				ui.elem_fsize_selector.value = "Custom";
 			}
 		}
-		accumulater.regenTextures(width, height);
 		ui.elem_fsize_display.innerHTML = width + 'x' + height;
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 		mat4.perspective(proj_mat, fov * Math.PI / 180, width / height, c_near, c_far);
@@ -302,6 +311,8 @@ function renderTick(timestamp) {
 		gl.uniformMatrix4fv(uni_iproj, false, iproj_mat);
 		gl.uniform3fv(uni_cam_pos, camPos);
 		gl.uniform2fv(uni_fsize, vec2.fromValues(width, height));
+		gl.uniform1f(uni_bounces, bounces);
+		accumulater.regenTextures(width, height);
 		accumulater.resetSamples();
 	}
 	if(accumulater.samples < ui.sampleLimit()) {
@@ -309,6 +320,8 @@ function renderTick(timestamp) {
 		gl.uniform1f(uni_samples, sppx);
 		gl.uniform1f(uni_acc_samples, accumulater.samples);
 		accumulater.renderToTexture(gl_trace, sppx);
+		gl.useProgram(gl_render);
+		gl.uniform1f(uni_total_samples, accumulater.samples);
 		accumulater.renderTextureToFrame(gl_render);
 	}
 	ui.elem_samples_display.innerHTML = accumulater.samples;
@@ -316,7 +329,5 @@ function renderTick(timestamp) {
 	window.requestAnimationFrame(renderTick);
 }
 ui.fsize.changed = true;	// manually trigger update on first frame
-ui.fsize._height = height;
-ui.fsize._width = width;
 ltime = performance.now();
 window.requestAnimationFrame(renderTick);

@@ -31,7 +31,7 @@
                 <ul>
                     <li>WASD to move the camera horzontally, Q/E for down/up.</li>
                     <li>Drag the mouse in the direction you want the camera to turn.</li>
-                    <li>Hold either shift to make the camera travel 5x as fast</li>
+                    <li>Hold either shift to make the camera travel 5x as fast.</li>
                 </ul>
                 <p>The frame can be resized by dragging the anchor at the bottom right of the frame or by selecting a preset resolution from the drop-down.</p>
             </div>
@@ -66,6 +66,9 @@
                         
                         <p style="margin-bottom:2px">Accumulation Limit: (Completed: <span id="total-samples-display">0</span>)</p>
                         <input id="samples-limit" type="number" value="10000" min="1" max="1000000" style="width:120px">
+
+                        <p style="margin-bottom:2px">Bounce Limit:</p>
+                        <input id="bounce-limit" type="number" value="5" min="1" max="100" style="width:120px">
                     </form>
                 </div>
             </div>
