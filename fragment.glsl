@@ -49,23 +49,6 @@ float rseed() {
 	return _rseed_;
 }
 
-// float _gold_noise_2(in vec2 xy, in float seed) {
-// 	return fract(tan(distance(xy * PHI, xy) * seed) * (xy.x + seed));	// add seed at end?
-// }
-// float _gold_noise_3(in vec3 xyz, in float seed) {
-// 	return fract(tan(distance(xyz * PHI, xyz) * seed) * (xyz.x + seed));
-// }
-// float _gold_noise_2_auto(in vec2 xy) {
-// 	float r = _gold_noise_2(xy, _rseed_);
-// 	_rseed_ = sqrt(_rseed_ * r);
-// 	return r;
-// }
-// float _gold_noise_3_auto(in vec3 xyz) {
-// 	float r = _gold_noise_3(xyz, _rseed_);
-// 	_rseed_ = sqrt(_rseed_ * r);
-// 	return r;
-// }
-
 float s_random_gen(in vec3 scale, in float seed) {
 	highp float d = 43758.5453;
 	highp float dt = dot(gl_FragCoord.xyz + seed, scale);
@@ -153,7 +136,7 @@ bool _refract(in Ray src, in Hit hit, out Ray ret, in float ratio) {
 }
 bool reflectGlossy(in Ray src, in Hit hit, out Ray ret, float gloss) {
 	ret.origin = hit.normal.origin;
-	ret.direction = reflect(src.direction, hit.normal.direction) + (uniformlyRandomVector(rseed()) * gloss);
+	ret.direction = reflect(src.direction, hit.normal.direction) + (randomUnitVec_Reject(rseed()) * gloss);
 	return dot(ret.direction, hit.normal.direction) > 0.0;
 }
 float reflectance_approx(float cos, float ratio) {
@@ -176,7 +159,7 @@ bool refractGlossy(in Ray src, in Hit hit, out Ray ret, in float ir, in float gl
 	}
 	vec3 r_out_perp = ir * (src.direction + cos_theta * hit.normal.direction);
 	vec3 r_out_para = -sqrt(abs(1.0 - dot(r_out_perp, r_out_perp))) * hit.normal.direction;
-	ret.direction = r_out_perp + r_out_para;
+	ret.direction = r_out_perp + r_out_para + (randomUnitVec_Reject(rseed()) * gloss);
 	ret.origin = hit.normal.origin;
 	return true;
 }
@@ -188,11 +171,12 @@ bool diffuse(in Hit hit, out Ray ret) {
 	return true;
 }
 bool redirectRay(in Ray src, in Hit hit, in Material mat, out Ray ret) {
-	float rand = rand();
-	if(rand < mat.roughness) {
+	float r = rand();
+	if(r < mat.roughness) {
 		return diffuse(hit, ret);
-	} else if(rand < mat.transparency) {
+	} else if(r < mat.transparency) {
 		return refractGlossy(src, hit, ret, mat.refraction_index, mat.glossiness);
+		//return _refract(src, hit, ret, mat.refraction_index);
 	} else {
 		return reflectGlossy(src, hit, ret, mat.glossiness);
 	}
@@ -202,22 +186,23 @@ bool redirectRay(in Ray src, in Hit hit, in Material mat, out Ray ret) {
 bool interactsSphere(in Ray ray, in Sphere s, inout Hit hit, float t_min, float t_max) {
 	vec3 o = ray.origin - s.position;
 	float a = dot(ray.direction, ray.direction);
-	float b = dot(o, ray.direction);
+	float b = 2.0 * dot(o, ray.direction);
 	float c = dot(o, o) - (s.radius * s.radius);
-	float d = (b * b) - (a * c);
+	float d = (b * b) - (4.0 * a * c);
 	if(d < 0.0) {
 		return false;
 	}
-	hit.time = (-sqrt(d) - b) / a;
+	hit.time = (sqrt(d) + b) / (-2.0 * a);
 	if(hit.time < t_min || hit.time > t_max) {
-		hit.time  = (sqrt(d) - b) / a;
+		hit.time  = (-sqrt(d) + b) / (-2.0 * a);
 		if(hit.time < t_min || hit.time > t_max) {
 			return false;
 		}
 	}
 	hit.normal.origin = ray.direction * hit.time + ray.origin;
-	hit.normal.direction = (hit.normal.origin - s.position) / s.radius;
+	hit.normal.direction = normalize(hit.normal.origin - s.position);
 	hit.reverse_intersect = dot(hit.normal.direction, ray.direction) > 0.0;
+	hit.normal.origin = s.position + hit.normal.direction * s.radius;
 	if(hit.reverse_intersect) {
 		hit.normal.direction *= -1.0;
 	}
@@ -230,21 +215,15 @@ vec3 getSourceRay(in vec2 proportional, in mat4 inv_proj, in mat4 inv_view) {
 	return vec3( inv_view * vec4( normalize(vec3(t) / t.w), 0) );
 }
 
-// const Sphere objs[4] = Sphere[4](
-// 	Sphere(vec3(0, 0, 4), 0.5, 0.0, vec3(0, 0.5, 0.5), Material(1.0, 0.0, 1.0, 1.5)),
-// 	Sphere(vec3(2, 0, 5), 1.6, 0.0, vec3(0.6, 0.5, 0.2), Material(0.0, 0.0, 0.0, 0.0)),
-// 	Sphere(vec3(-2, 2, 3), 0.3, 10.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0)),
-// 	Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
-// );
 const Sphere objs[9] = Sphere[9](
-	Sphere(vec3(2, -0.1, 3), 0.6, 2.0, vec3(0.5, 0.2, 0.2), Material(1.0, 0.01, 1.0, 1.4)),
-	Sphere(vec3(-3, 0.2, 3), 0.4, 0.0, vec3(1,1,1), Material(0.0, 0.0, 1.0, 1.5)),
+	Sphere(vec3(2, -0.1, 3), 0.6, 2.0, vec3(0.5, 0.2, 0.2), Material(1.0, 0.0, 1.0, 1.4)),
+	Sphere(vec3(-3, 0, 2), 0.8, 0.0, vec3(1,1,1), Material(0.0, 0.0, 1.0, 1.7)),
 	Sphere(vec3(0, -10, 4), 9.6, 0.0, vec3(0.7, 0.6, 0.8), Material(1.0, 0.5, 0.0, 0.0)),
-	Sphere(vec3(1, 1, 5), 1.0, 2.0, vec3(0.1, 0.7, 0.7), Material(1.0, 0.01, 0.0, 0.0)),
+	Sphere(vec3(1, 1, 5), 1.0, 2.0, vec3(0.1, 0.7, 0.7), Material(1.0, 0.0, 0.0, 0.0)),
 	Sphere(vec3(-2, -0.3, 7), 3.0, 0.0, vec3(0.5, 0.7, 0.2), Material(1.0, 0.1, 0.0, 0.0)),
-	Sphere(vec3(-0.8, 0, 3), 0.7, 0.0, vec3(0.7, 0.5, 0.1), Material(0.0, 0.01, 0.0, 0.0)),
+	Sphere(vec3(-0.8, 0, 3), 0.7, 0.0, vec3(0.7, 0.5, 0.1), Material(0.0, 0.0, 0.0, 0.0)),
 	Sphere(vec3(0, 0, 4), 0.5, 0.0, vec3(0, 0.5, 0.5), Material(1.0, 0.0, 1.0, 1.5)),
-	Sphere(vec3(2, 0, 5), 1.6, 0.0, vec3(0.2, 0.7, 0.3), Material(0.0, 0.01, 0.0, 0.0)),
+	Sphere(vec3(2, 0, 5), 1.6, 0.0, vec3(0.2, 0.7, 0.3), Material(0.0, 0.0, 0.0, 0.0)),
 	Sphere(vec3(-3, 7, 4), 0.3, 100.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0))
 	//Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
 );
@@ -253,30 +232,19 @@ vec3 evalRay(in Ray ray, in int bounces) {
 	vec3 cache = vec3(1.0);
 	Ray current = ray;
 	for(int b = bounces; b >= 0; b--) {
-		Hit hit;
+		Hit hit, tmp;
 		hit.time = 10000000000000.;
-		Hit tmp;
-		bool interaction = false;
 		int idx = -1;
 		for(int i = 0; i < objs.length(); i++) {
-			if(interactsSphere(current, objs[i], tmp, 0.0, hit.time)) {
+			if(interactsSphere(current, objs[i], tmp, EPSILON, hit.time)) {
 				hit = tmp;
-				interaction = true;
 				idx = i;
 			}
 		}
-		if(interaction) {
-			// if(b == bounces - 1) {
-			// 	Ray redirect;
-			// 	redirectRay(current, hit, objs[idx].mat, redirect);
-			// 	return redirect.direction * 0.5 + 0.5;
-			// }
+		if(idx >= 0) {
 			float lum = objs[idx].luminance;
 			vec3 clr = objs[idx].albedo;
-			if(b == 0 || ((clr.x + clr.y + clr.z) / 3. * lum) >= 1.) {
-				// Ray redirect;
-				// redirectRay(current, hit, objs[idx].mat, redirect);
-				// return redirect.direction * 0.5 + 0.5;
+			if(b == 0 || ((clr.x + clr.y + clr.z) / 3.0 * lum) >= 1.0) {
 				total += cache * clr * lum;
 				return total;
 			}
@@ -288,7 +256,7 @@ vec3 evalRay(in Ray ray, in int bounces) {
 				continue;
 			}
 		}
-		total += cache * vec3(0.05);
+		total += cache * skycolor;
 		break;
 	}
 	return total;

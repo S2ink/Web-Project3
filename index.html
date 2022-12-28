@@ -69,6 +69,10 @@
 
                         <p style="margin-bottom:2px">Bounce Limit:</p>
                         <input id="bounce-limit" type="number" value="5" min="1" max="100" style="width:120px">
+
+                        <p style="margin-bottom:2px">Sky Color:</p>
+                        <input id="sky-color" type="color" value="#0C0C0C">
+                        <!-- <button id="reset-sky-color" type="button" onclick="" style="margin-left:2px">Reset</button> -->
                     </form>
                 </div>
             </div>
@@ -78,9 +82,9 @@
                 <ul>
                     <li>When holding a key down and dis/re-selecting the canvas with a mouse, those inputs will not be available until also released and re-pressed (usually not a big deal).</li>
                     <li>Accidentally highlighting text when dragging the camera around can cause funky movement behavior (try fullscreen mode for large camera movements).</li>
-                    <li>[Currently] different value of samples/pixel/frame yield different results because of the way that frames are accumulated and composited.</li>
                     <li>Lower resolutions and samples/pixel/frame will result in better framerate, but in the case of the latter, longer convergence time.</li>
-                    <li>Sometimes the 10000 sample limit is not enought to allow full convergence -- there will probably be a slider for this limit in the future.</li>
+                    <li>When simply waiting for a render to finish (not modifying the camera) there is no reason not to crank the samples per frame in order for the computation to run as fast as possible.</li>
+                    <li>Scenes with higher contrasts in lighting or relatively small light sources that are very bright will need much more samples to converge.</li>
                 </ul>
             </div>
 
