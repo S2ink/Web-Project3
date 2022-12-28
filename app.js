@@ -50,6 +50,8 @@ const ui = {
 	elem_samples_display : document.getElementById("total-samples-display"),
 	elem_samples_limit : document.getElementById("samples-limit"),
 	elem_bounce_limit : document.getElementById("bounce-limit"),
+	elem_sky_color : document.getElementById("sky-color"),
+	// elem_reset_sky : document.getElementById("reset-sky-color"),
 
 	keys : {
 		w : false,
@@ -72,7 +74,12 @@ const ui = {
 		_width : width,		// these are both a cache for fullscreen and a buffer for resize events
 		_height : height,
 	},
-	resize_listener : null
+	resize_listener : null,
+
+	scene : {
+		updated : false,
+		skycolor : vec3.fromValues(0.05, 0.05, 0.05)
+	}
 
 };
 
@@ -173,6 +180,14 @@ ui.onFullScreen = function(e) {
 	ui.fsize.fullscreen = !!document.fullscreenElement;
 	ui.fsize.changed = true;
 }
+ui.scene.onSkyChange = function(e) {
+	let hex = e.target.value;
+	let r = parseInt(hex[1] + hex[2], 16);
+	let g = parseInt(hex[3] + hex[4], 16);
+	let b = parseInt(hex[5] + hex[6], 16);
+	vec3.set(ui.scene.skycolor, r / 255, g / 255, b / 255);
+	ui.scene.updated = true;
+}
 
 canvas.addEventListener('mousedown', ui.onMouseDown);
 document.body.addEventListener('mousemove', ui.onMouseMove);
@@ -182,6 +197,7 @@ document.body.addEventListener('keyup', ui.onKeyUp);
 document.addEventListener('fullscreenchange', ui.onFullScreen);
 ui.elem_fsize_selector.addEventListener('change', ui.onResSelect);
 (ui.resize_listener = new ResizeObserver(ui.onResize)).observe(frame);
+ui.elem_sky_color.addEventListener('input', ui.scene.onSkyChange);
 
 
 
@@ -236,7 +252,7 @@ const uni_fsize = gl.getUniformLocation(gl_trace, "fsize");
 const uni_realtime = gl.getUniformLocation(gl_trace, "realtime");
 const uni_samples = gl.getUniformLocation(gl_trace, "samples");
 const uni_bounces = gl.getUniformLocation(gl_trace, "bounces");
-const uni_acc_samples = gl.getUniformLocation(gl_trace, "acc_samples");
+const uni_sky_color = gl.getUniformLocation(gl_trace, "skycolor");
 const uni_total_samples = gl.getUniformLocation(gl_render, "total_samples");
 
 
@@ -247,6 +263,7 @@ function renderTick(timestamp) {
 
 	let needs_reproject = ui.updateFov();
 	let updated = needs_reproject || ui.updateBounceLimit();
+	gl.useProgram(gl_trace);
 	if(ui.enable_camera) {
 		if(ui.keys.anyRaw()) {
 			updated = true;
@@ -303,9 +320,13 @@ function renderTick(timestamp) {
 		mat4.perspective(proj_mat, fov * Math.PI / 180, width / height, c_near, c_far);
 		mat4.invert(iproj_mat, proj_mat);
 	}
+	if(ui.scene.updated) {
+		updated = true;
+		ui.scene.updated = false;
+		gl.uniform3fv(uni_sky_color, ui.scene.skycolor);
+	}
 
 	let sppx = ui.sampleRate();
-	gl.useProgram(gl_trace);
 	if(updated) {
 		gl.uniformMatrix4fv(uni_iview, false, iview_mat);
 		gl.uniformMatrix4fv(uni_iproj, false, iproj_mat);
@@ -318,7 +339,6 @@ function renderTick(timestamp) {
 	if(accumulater.samples < ui.sampleLimit()) {
 		gl.uniform1f(uni_realtime, performance.now() - start_time);
 		gl.uniform1f(uni_samples, sppx);
-		gl.uniform1f(uni_acc_samples, accumulater.samples);
 		accumulater.renderToTexture(gl_trace, sppx);
 		gl.useProgram(gl_render);
 		gl.uniform1f(uni_total_samples, accumulater.samples);
@@ -329,5 +349,6 @@ function renderTick(timestamp) {
 	window.requestAnimationFrame(renderTick);
 }
 ui.fsize.changed = true;	// manually trigger update on first frame
+ui.scene.updated = true;
 ltime = performance.now();
 window.requestAnimationFrame(renderTick);
