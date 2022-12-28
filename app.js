@@ -221,10 +221,15 @@ const accumulater = {
 	mixWeight(sppx) { return this.samples / (this.samples + sppx); },
 	resetSamples() { this.samples = 0; },
 	regenTextures(w, h) {
-		gl.deleteTexture(this.textures[0]);
-		gl.deleteTexture(this.textures[1]);
-		this.textures[0] = genTextureRGBA32F(gl, w, h);
-		this.textures[1] = genTextureRGBA32F(gl, w, h);
+		// gl.deleteTexture(this.textures[0]);
+		// gl.deleteTexture(this.textures[1]);
+		// this.textures[0] = genTextureRGBA32F(gl, w, h);
+		// this.textures[1] = genTextureRGBA32F(gl, w, h);
+		gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
+		gl.bindTexture(gl.TEXTURE_2D, this.textures[1]);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
+		gl.bindTexture(gl.TEXTURE_2D, null);
 		this.resetSamples();
 	},
 	renderToTexture(trace_program, sppx) {
@@ -331,7 +336,7 @@ function renderTick(timestamp) {
 		gl.uniformMatrix4fv(uni_iview, false, iview_mat);
 		gl.uniformMatrix4fv(uni_iproj, false, iproj_mat);
 		gl.uniform3fv(uni_cam_pos, camPos);
-		gl.uniform2fv(uni_fsize, vec2.fromValues(width, height));
+		gl.uniform2f(uni_fsize, width, height);
 		gl.uniform1f(uni_bounces, bounces);
 		accumulater.regenTextures(width, height);
 		accumulater.resetSamples();

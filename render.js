@@ -144,23 +144,6 @@ float rseed() {
 	return _rseed_;
 }
 
-// float _gold_noise_2(in vec2 xy, in float seed) {
-// 	return fract(tan(distance(xy * PHI, xy) * seed) * (xy.x + seed));	// add seed at end?
-// }
-// float _gold_noise_3(in vec3 xyz, in float seed) {
-// 	return fract(tan(distance(xyz * PHI, xyz) * seed) * (xyz.x + seed));
-// }
-// float _gold_noise_2_auto(in vec2 xy) {
-// 	float r = _gold_noise_2(xy, _rseed_);
-// 	_rseed_ = sqrt(_rseed_ * r);
-// 	return r;
-// }
-// float _gold_noise_3_auto(in vec3 xyz) {
-// 	float r = _gold_noise_3(xyz, _rseed_);
-// 	_rseed_ = sqrt(_rseed_ * r);
-// 	return r;
-// }
-
 float s_random_gen(in vec3 scale, in float seed) {
 	highp float d = 43758.5453;
 	highp float dt = dot(gl_FragCoord.xyz + seed, scale);
