@@ -215,18 +215,6 @@ vec3 getSourceRay(in vec2 proportional, in mat4 inv_proj, in mat4 inv_view) {
 	return vec3( inv_view * vec4( normalize(vec3(t) / t.w), 0) );
 }
 
-const Sphere objs[9] = Sphere[9](
-	Sphere(vec3(2, -0.1, 3), 0.6, 2.0, vec3(0.5, 0.2, 0.2), Material(1.0, 0.0, 1.0, 1.4)),
-	Sphere(vec3(-3, 0, 2), 0.8, 0.0, vec3(1,1,1), Material(0.0, 0.0, 1.0, 1.7)),
-	Sphere(vec3(0, -10, 4), 9.6, 0.0, vec3(0.7, 0.6, 0.8), Material(1.0, 0.5, 0.0, 0.0)),
-	Sphere(vec3(1, 1, 5), 1.0, 2.0, vec3(0.1, 0.7, 0.7), Material(1.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(-2, -0.3, 7), 3.0, 0.0, vec3(0.5, 0.7, 0.2), Material(1.0, 0.1, 0.0, 0.0)),
-	Sphere(vec3(-0.8, 0, 3), 0.7, 0.0, vec3(0.7, 0.5, 0.1), Material(0.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(0, 0, 4), 0.5, 0.0, vec3(0, 0.5, 0.5), Material(1.0, 0.0, 1.0, 1.5)),
-	Sphere(vec3(2, 0, 5), 1.6, 0.0, vec3(0.2, 0.7, 0.3), Material(0.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(-3, 7, 4), 0.3, 100.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0))
-	//Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
-);
 vec3 evalRay(in Ray ray, in int bounces) {
 	vec3 total = vec3(0.0);
 	vec3 cache = vec3(1.0);
@@ -235,21 +223,27 @@ vec3 evalRay(in Ray ray, in int bounces) {
 		Hit hit, tmp;
 		hit.time = 10000000000000.;
 		int idx = -1;
-		for(int i = 0; i < objs.length(); i++) {
-			if(interactsSphere(current, objs[i], tmp, EPSILON, hit.time)) {
+		for(int i = 0; i < int(sphere_count); i++) {
+			if(interactsSphere(current, spheres[i], tmp, EPSILON, hit.time)) {
 				hit = tmp;
 				idx = i;
 			}
 		}
+
+		// if(idx >= 0) {
+		// 	return spheres[idx].albedo;
+		// }
+		// return skycolor;
+
 		if(idx >= 0) {
-			float lum = objs[idx].luminance;
-			vec3 clr = objs[idx].albedo;
+			float lum = spheres[idx].luminance;
+			vec3 clr = spheres[idx].albedo;
 			if(b == 0 || ((clr.x + clr.y + clr.z) / 3.0 * lum) >= 1.0) {
 				total += cache * clr * lum;
 				return total;
 			}
 			Ray redirect;
-			if(redirectRay(current, hit, objs[idx].mat, redirect)) {
+			if(redirectRay(current, hit, spheres[idx].mat, redirect)) {
 				cache *= clr;
 				total += cache * lum;
 				current = redirect;

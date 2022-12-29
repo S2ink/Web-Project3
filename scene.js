@@ -19,53 +19,47 @@ class GLStruct {
 		this.cached_positions = {};
 	}
 
+	cachePos(gl, program, struct) {
+		return GLStruct.cachePositions(gl, program, this, struct);
+	}
+	updateCached(gl) {
+		return GLStruct.uniformCached(gl, this);
+	}
+
 	static cachePositions(gl, program, sobj, sname) {
 		if(!(sobj instanceof GLStruct)) return false;
 		const base = sname + '.';
 		for(const key in sobj) {
+			if(key == "cached_positions") continue;
 			let val = sobj[key];
 			if(val instanceof GLStruct &&
 				!this.cachePositions(gl, program, val, base + key)) {
 				return false;
 			} else {
-				let pos = gl.getUniformLocation(program, base + key)
-				if(pos == null) return false;
+				let pos = gl.getUniformLocation(program, base + key);
+				// if(pos == null) return false;
 				sobj.cached_positions[key] = pos;
 			}
 		}
 		return true;
 	}
-	static update(gl, sobj) {
+	static uniformCached(gl, sobj) {
 		if(!(sobj instanceof GLStruct)) return false;
 		for(const key in sobj) {
-			if(sobj.cahced_positions[key] != undefined) {
+			if(key == "cached_positions") continue;
+			const loc = sobj.cached_positions[key];
+			if(loc) {
 				const val = sobj[key];
-				const loc = sobj.cached_positions[key];
 				if(val instanceof GLStruct &&
-					!this.update(gl, val)) {
+					!this.uniformCached(gl, val)) {
 					return false;
-				} else if(val instanceof glMatrix.ARRAY_TYPE) {
+				} else if(val instanceof glMatrix.glMatrix.ARRAY_TYPE) {
 					switch(val.length) {
-						case 2: {
-							gl.uniform2fv(loc, val);
-							break;
-						}
-						case 3: {
-							gl.uniform3fv(loc, val);
-							break;
-						}
-						case 4: {
-							gl.uniform4fv(loc, val);
-							break;
-						}
-						case 9: {
-							gl.uniformMatrix3fv(loc, false, val);
-							break;
-						}
-						case 16: {
-							gl.uniformMatrix4fv(loc, false, val);
-							break;
-						}
+						case 2: gl.uniform2fv(loc, val); continue;
+						case 3: gl.uniform3fv(loc, val); continue;
+						case 4: gl.uniform4fv(loc, val); continue;
+						case 9: gl.uniformMatrix3fv(loc, false, val); continue;
+						case 16: gl.uniformMatrix4fv(loc, false, val); continue;
 					}
 				} else {
 					gl.uniform1f(loc, val);
@@ -85,29 +79,11 @@ class Material extends GLStruct {
 	}
 
 	updateCached(gl) {
-		if(this.cached_positions.length) {
-			gl.uniform1f(this.cached_positions[0], this.roughness);
-			gl.uniform1f(this.cached_positions[1], this.glossiness);
-			gl.uniform1f(this.cached_positions[2], this.transparency);
-			gl.uniform1f(this.cached_positions[3], this.refraction_index);
-			return true;
-		}
-		return false;
-	}
-
-	static glCopy(gl, program, mat, sname) {
-		const keys = Object.keys(mat)
-		if(mat.cached_positions.length != keys.length) {
-			const base = sname + '.';
-			let i = 0;
-			for(const key in keys) {
-				let pos = gl.getUniformLocation(program, base + key);
-				if(!pos) { return false; }
-				mat.cached_positions[i] = pos;
-				i++;
-			}
-		}
-		return mat.updateCached(gl);
+		gl.uniform1f(this.cached_positions.roughness, this.roughness);
+		gl.uniform1f(this.cached_positions.glossiness, this.glossiness);
+		gl.uniform1f(this.cached_positions.transparency, this.transparency);
+		gl.uniform1f(this.cached_positions.refraction_index, this.refraction_index);
+		return true;
 	}
 }
 class Sphere extends GLStruct {
@@ -119,19 +95,66 @@ class Sphere extends GLStruct {
 		this.albedo = clr ?? vec3.create();
 		this.mat = mat ?? new Material();
 	}
-	static struct_members = [
-		"position",
-		"radius",
-		"luminance",
-		"albedo",
-		"mat"
-	];
+
+	updateCached(gl) {
+		gl.uniform3fv(this.cached_positions.position, this.position);
+		gl.uniform1f(this.cached_positions.radius, this.radius);
+		gl.uniform1f(this.cached_positions.luminance, this.luminance);
+		gl.uniform3fv(this.cached_positions.albedo, this.albedo);
+		this.mat.updateCached(gl);
+		return true;
+	}
 }
 
 class Scene {
 	constructor() {
 		this.spheres = [];
 	}
+
+	cacheSphereLocations(gl, program, arrname) {
+		for(let i = 0; i < this.spheres.length; i++) {
+			const n = arrname + '[' + i + ']';
+			this.spheres[i].cachePos(gl, program, n);
+		}
+	}
+	updateSpheres(gl) {
+		for(let i =0; i < this.spheres.length; i++) {
+			this.spheres[i].updateCached(gl);
+		}
+	}
+
+	trySelect(src) {
+		let hit = new Hit;
+		let t_max = Number.POSITIVE_INFINITY;
+		let ret = -1;
+		for(let i = 0; i < this.spheres.length; i++) {
+			if(sphereIntersect(src, this.spheres[i], hit, 0, t_max)) {
+				t_max = hit.time;
+				ret = i;
+			}
+		}
+		return ret;
+	}
+}
+
+
+
+function sphereIntersect(src, s, hit, t_min = 0, t_max = Number.POSITIVE_INFINITY) {
+	let o = vec3.sub(vec3.create(), src.origin, s.position);
+	let a = vec3.dot(src.direction, src.direction);
+	let b = 2 * vec3.dot(o, src.direction);
+	let c = vec3.dot(o, o) - (s.radius * s.radius);
+	let d = (b * b) - (4 * a * c);
+	if(d < 0) return false;
+	hit.time = (Math.sqrt(d) + b) / (-2 * a);
+	if(hit.time < t_min || hit.time > t_max) return false;
+	// vec3.scaleAndAdd(hit.normal.origin, src.origin, src.direction, hit.time);
+	// vec3.sub(hit.normal.direction, hit.normal.origin, s.position);
+	// vec3.scale(hit.normal.direction, hit.normal.direction, 1 / s.radius);
+	// if(hit.reverse_intersect = vec3.dot(hit.normal.direction, src.direction) > 0) {
+	// 	vec3.negate(hit.normal.direction, hit.normal.direction);
+	// }
+	return true;
 }
 
 // // technically unecessary base interfaces
