@@ -40,6 +40,36 @@ gl.useProgram(gl_trace);
 
 
 
+const uni_iview = gl.getUniformLocation(gl_trace, "iview");
+const uni_iproj = gl.getUniformLocation(gl_trace, "iproj");
+const uni_cam_pos = gl.getUniformLocation(gl_trace, "cam_pos");
+const uni_fsize = gl.getUniformLocation(gl_trace, "fsize");
+const uni_realtime = gl.getUniformLocation(gl_trace, "realtime");
+const uni_samples = gl.getUniformLocation(gl_trace, "samples");
+const uni_bounces = gl.getUniformLocation(gl_trace, "bounces");
+const uni_simple = gl.getUniformLocation(gl_trace, "simple");
+const uni_sky_color = gl.getUniformLocation(gl_trace, "skycolor");
+const uni_sphere_count = gl.getUniformLocation(gl_trace, "sphere_count");	// add this to the scene obj
+const uni_selected_sphere = gl.getUniformLocation(gl_trace, "selected_sphere"); // ^
+const uni_total_samples = gl.getUniformLocation(gl_render, "total_samples");
+
+const scene = new Scene();
+scene.spheres = [
+	new Sphere(Vec3(2.1, 0.1, 2.5), 0.8, 2.0, Vec3(0.5, 0.2, 0.2), new Material(1.0, 0.0, 1.0, 1.4)),
+	new Sphere(Vec3(0, 0.0, 2.5), 0.5, 0.0, Vec3(1,1,1), new Material(0.0, 0.0, 1.0, 1.7)),
+	new Sphere(Vec3(0, -10, 4), 9.6, 0.0, Vec3(0.7, 0.6, 0.8), new Material(1.0, 0.5, 0.0, 0.0)),
+	new Sphere(Vec3(0.5, 1.8, 4.5), 0.7, 2.0, Vec3(0.1, 0.7, 0.7), new Material(1.0, 0.0, 0.0, 0.0)),
+	new Sphere(Vec3(-2, -0.3, 7), 3.0, 0.0, Vec3(0.5, 0.7, 0.2), new Material(1.0, 0.1, 0.0, 0.0)),
+	new Sphere(Vec3(-2, 0, 3), 0.7, 0.0, Vec3(0.7, 0.5, 0.1), new Material(0.0, 0.0, 0.0, 0.0)),
+	new Sphere(Vec3(0, 0, 4), 0.5, 0.0, Vec3(0, 0.5, 0.5), new Material(1.0, 0.0, 1.0, 1.5)),
+	new Sphere(Vec3(2, 0, 5), 1.6, 0.0, Vec3(0.2, 0.7, 0.3), new Material(0.0, 0.0, 0.0, 0.0)),
+	new Sphere(Vec3(-3, 4, 4), 0.3, 100.0, Vec3(0.7, 0.2, 0.8), new Material(1.0, 0.0, 0.0, 0.0))
+];
+scene.cacheSphereLocations(gl, gl_trace, "spheres");
+scene.updateSpheres(gl);
+gl.uniform1f(uni_sphere_count, scene.spheres.length);
+
+
 const ui = {
 	elem_fsize_selector : document.getElementById("fixed-fsize-select"),
 	elem_fsize_display : document.getElementById("fsize-display"),
@@ -78,6 +108,7 @@ const ui = {
 
 	scene : {
 		updated : false,
+		simple_render : false,
 		skycolor : vec3.fromValues(0.05, 0.05, 0.05)
 	}
 
@@ -105,8 +136,16 @@ ui.zeroMouse = function() {
 }
 ui.onMouseDown = function(e) {
 	if(ui.keys.ctrl) {
-		// handle select object
-		console.log("selection");
+		let rect = canvas.getBoundingClientRect();
+		let ray = new Ray();
+		let prop = vec2.fromValues(
+			(e.clientX - rect.left) / width,
+			1 - ((e.clientY - rect.top) / height));
+		ray.origin = camPos;
+		ray.direction = calcRayDirection(
+			prop, iproj_mat, iview_mat);
+		let idx = scene.trySelect(ray);
+		console.log("Selected sphere " + idx);
 	} else {
 		ui.enable_camera = true;
 		vec2.copy(ui.mouse_xy2, vec2.set(
@@ -188,6 +227,10 @@ ui.scene.onSkyChange = function(e) {
 	vec3.set(ui.scene.skycolor, r / 255, g / 255, b / 255);
 	ui.scene.updated = true;
 }
+ui.scene.onRenderChange = function(val) {
+	this.simple_render = val;
+	this.updated = true;
+}
 
 canvas.addEventListener('mousedown', ui.onMouseDown);
 document.body.addEventListener('mousemove', ui.onMouseMove);
@@ -221,10 +264,15 @@ const accumulater = {
 	mixWeight(sppx) { return this.samples / (this.samples + sppx); },
 	resetSamples() { this.samples = 0; },
 	regenTextures(w, h) {
-		gl.deleteTexture(this.textures[0]);
-		gl.deleteTexture(this.textures[1]);
-		this.textures[0] = genTextureRGBA32F(gl, w, h);
-		this.textures[1] = genTextureRGBA32F(gl, w, h);
+		// gl.deleteTexture(this.textures[0]);
+		// gl.deleteTexture(this.textures[1]);
+		// this.textures[0] = genTextureRGBA32F(gl, w, h);
+		// this.textures[1] = genTextureRGBA32F(gl, w, h);
+		gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
+		gl.bindTexture(gl.TEXTURE_2D, this.textures[1]);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
+		gl.bindTexture(gl.TEXTURE_2D, null);
 		this.resetSamples();
 	},
 	renderToTexture(trace_program, sppx) {
@@ -244,17 +292,6 @@ const accumulater = {
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 	}
 };
-
-const uni_iview = gl.getUniformLocation(gl_trace, "iview");
-const uni_iproj = gl.getUniformLocation(gl_trace, "iproj");
-const uni_cam_pos = gl.getUniformLocation(gl_trace, "cam_pos");
-const uni_fsize = gl.getUniformLocation(gl_trace, "fsize");
-const uni_realtime = gl.getUniformLocation(gl_trace, "realtime");
-const uni_samples = gl.getUniformLocation(gl_trace, "samples");
-const uni_bounces = gl.getUniformLocation(gl_trace, "bounces");
-const uni_sky_color = gl.getUniformLocation(gl_trace, "skycolor");
-const uni_total_samples = gl.getUniformLocation(gl_render, "total_samples");
-
 
 var ltime;
 function renderTick(timestamp) {
@@ -331,8 +368,9 @@ function renderTick(timestamp) {
 		gl.uniformMatrix4fv(uni_iview, false, iview_mat);
 		gl.uniformMatrix4fv(uni_iproj, false, iproj_mat);
 		gl.uniform3fv(uni_cam_pos, camPos);
-		gl.uniform2fv(uni_fsize, vec2.fromValues(width, height));
+		gl.uniform2f(uni_fsize, width, height);
 		gl.uniform1f(uni_bounces, bounces);
+		gl.uniform1f(uni_simple, ui.scene.simple_render * 1);
 		accumulater.regenTextures(width, height);
 		accumulater.resetSamples();
 	}

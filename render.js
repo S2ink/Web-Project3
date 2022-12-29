@@ -57,6 +57,13 @@ function buildProgram(gl, vsource, fsource) {		// faster than calling all method
 	return program;
 }
 
+function listActiveUniforms(gl, program) {
+	const num = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+	for(let i = 0; i < num; i++) {
+		console.log(gl.getActiveUniform(program, i).name);
+	}
+}
+
 
 
 const fb_vertex_src = `#version 300 es
@@ -129,10 +136,12 @@ uniform vec2 fsize;
 uniform float realtime;
 uniform float samples;
 uniform float bounces;
+uniform float simple;
 
+uniform vec3 skycolor;
 uniform Sphere spheres[SPHERE_ARRAY_LEN];
 uniform float sphere_count;
-uniform vec3 skycolor;
+uniform float selected_sphere;
 
 
 const vec3 _rc1_ = vec3(12.9898, 78.233, 151.7182);
@@ -143,23 +152,6 @@ float rseed() {
 	_rseed_ += (fract(sqrt(realtime)));
 	return _rseed_;
 }
-
-// float _gold_noise_2(in vec2 xy, in float seed) {
-// 	return fract(tan(distance(xy * PHI, xy) * seed) * (xy.x + seed));	// add seed at end?
-// }
-// float _gold_noise_3(in vec3 xyz, in float seed) {
-// 	return fract(tan(distance(xyz * PHI, xyz) * seed) * (xyz.x + seed));
-// }
-// float _gold_noise_2_auto(in vec2 xy) {
-// 	float r = _gold_noise_2(xy, _rseed_);
-// 	_rseed_ = sqrt(_rseed_ * r);
-// 	return r;
-// }
-// float _gold_noise_3_auto(in vec3 xyz) {
-// 	float r = _gold_noise_3(xyz, _rseed_);
-// 	_rseed_ = sqrt(_rseed_ * r);
-// 	return r;
-// }
 
 float s_random_gen(in vec3 scale, in float seed) {
 	highp float d = 43758.5453;
@@ -327,18 +319,18 @@ vec3 getSourceRay(in vec2 proportional, in mat4 inv_proj, in mat4 inv_view) {
 	return vec3( inv_view * vec4( normalize(vec3(t) / t.w), 0) );
 }
 
-const Sphere objs[9] = Sphere[9](
-	Sphere(vec3(2, -0.1, 3), 0.6, 2.0, vec3(0.5, 0.2, 0.2), Material(1.0, 0.0, 1.0, 1.4)),
-	Sphere(vec3(-3, 0, 2), 0.8, 0.0, vec3(1,1,1), Material(0.0, 0.0, 1.0, 1.7)),
-	Sphere(vec3(0, -10, 4), 9.6, 0.0, vec3(0.7, 0.6, 0.8), Material(1.0, 0.5, 0.0, 0.0)),
-	Sphere(vec3(1, 1, 5), 1.0, 2.0, vec3(0.1, 0.7, 0.7), Material(1.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(-2, -0.3, 7), 3.0, 0.0, vec3(0.5, 0.7, 0.2), Material(1.0, 0.1, 0.0, 0.0)),
-	Sphere(vec3(-0.8, 0, 3), 0.7, 0.0, vec3(0.7, 0.5, 0.1), Material(0.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(0, 0, 4), 0.5, 0.0, vec3(0, 0.5, 0.5), Material(1.0, 0.0, 1.0, 1.5)),
-	Sphere(vec3(2, 0, 5), 1.6, 0.0, vec3(0.2, 0.7, 0.3), Material(0.0, 0.0, 0.0, 0.0)),
-	Sphere(vec3(-3, 7, 4), 0.3, 100.0, vec3(0.7, 0.2, 0.8), Material(1.0, 0.0, 0.0, 0.0))
-	//Sphere(vec3(0, -100.3, 0), 100.0, 0.0, vec3(0.5, 0.7, 0.9), Material(1.0, 0.0, 0.0, 0.0))
-);
+vec3 evalRaySimple(in Ray ray) {
+	Hit hit;
+	float t_max = 10000000000000.;
+	vec3 alb = skycolor;
+	for(int i = 0; i < int(sphere_count); i++) {
+		if(interactsSphere(ray, spheres[i], hit, EPSILON, t_max)) {
+			t_max = hit.time;
+			alb = spheres[i].albedo;
+		}
+	}
+	return alb;
+}
 vec3 evalRay(in Ray ray, in int bounces) {
 	vec3 total = vec3(0.0);
 	vec3 cache = vec3(1.0);
@@ -347,21 +339,21 @@ vec3 evalRay(in Ray ray, in int bounces) {
 		Hit hit, tmp;
 		hit.time = 10000000000000.;
 		int idx = -1;
-		for(int i = 0; i < objs.length(); i++) {
-			if(interactsSphere(current, objs[i], tmp, EPSILON, hit.time)) {
+		for(int i = 0; i < int(sphere_count); i++) {
+			if(interactsSphere(current, spheres[i], tmp, EPSILON, hit.time)) {
 				hit = tmp;
 				idx = i;
 			}
 		}
 		if(idx >= 0) {
-			float lum = objs[idx].luminance;
-			vec3 clr = objs[idx].albedo;
+			float lum = spheres[idx].luminance;
+			vec3 clr = spheres[idx].albedo;
 			if(b == 0 || ((clr.x + clr.y + clr.z) / 3.0 * lum) >= 1.0) {
 				total += cache * clr * lum;
 				return total;
 			}
 			Ray redirect;
-			if(redirectRay(current, hit, objs[idx].mat, redirect)) {
+			if(redirectRay(current, hit, spheres[idx].mat, redirect)) {
 				cache *= clr;
 				total += cache * lum;
 				current = redirect;
@@ -378,10 +370,18 @@ out vec4 fragColor;
 void main() {
 	Ray src = Ray(cam_pos, vec3(0.0));
 	vec3 clr = texture(acc_frame, gl_FragCoord.xy / fsize).rgb;
-	for(int i = 0; i < int(samples); i++) {
-		float r = rand();
-		src.direction = getSourceRay((vec2(gl_FragCoord) + vec2(r)) / fsize, iproj, iview);
-		clr += evalRay(src, int(bounces));
+	if(simple == 1.0) {
+		for(int i = 0; i < int(samples); i++) {
+			float r = rand();
+			src.direction = getSourceRay((gl_FragCoord.xy + vec2(r)) / fsize, iproj, iview);
+			clr += evalRaySimple(src);
+		}
+	} else {
+		for(int i = 0; i < int(samples); i++) {
+			float r = rand();
+			src.direction = getSourceRay((vec2(gl_FragCoord) + vec2(r)) / fsize, iproj, iview);
+			clr += evalRay(src, int(bounces));
+		}
 	}
 	fragColor = vec4(clr, 1.0);
 }
