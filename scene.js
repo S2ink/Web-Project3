@@ -14,96 +14,142 @@ class Hit {
     }
 }
 
+/**
+ * Extendable class for all things that should be bound to glsl structs
+ */
 class GLStruct {
 	constructor() {
-		this.cached_positions = {};
+		this.bindings = {};
 	}
 
-	cachePos(gl, program, struct) {
-		return GLStruct.cachePositions(gl, program, this, struct);
-	}
-	updateCached(gl) {
-		return GLStruct.uniformCached(gl, this);
-	}
+	bind(gl, program, struct)	// cache the locations of all struct elements (for the name of the struct passed in)
+		{ return GLStruct.bindStruct(gl, program, this, struct); }
+	update(gl)	// update the values of the bound struct to the current js values
+		{ return GLStruct.updateStruct(gl, this); }
 
-	static cachePositions(gl, program, sobj, sname) {
+	static bindStruct(gl, program, sobj, sname) {
 		if(!(sobj instanceof GLStruct)) return false;
+		let ret = true;
 		const base = sname + '.';
 		for(const key in sobj) {
-			if(key == "cached_positions") continue;
-			let val = sobj[key];
-			if(val instanceof GLStruct &&
-				!this.cachePositions(gl, program, val, base + key)) {
-				return false;
+			if(key == "bindings") continue;
+			const val = sobj[key];
+			if(val instanceof GLStruct) {
+				ret &= this.bindStruct(gl, program, val, base + key);
+				sobj.bindings[key] = undefined;
 			} else {
-				let pos = gl.getUniformLocation(program, base + key);
-				// if(pos == null) return false;
-				sobj.cached_positions[key] = pos;
+				const pos = gl.getUniformLocation(program, base + key);
+				if(pos != null) {
+					sobj.bindings[key] = pos;
+					continue
+				}
+				ret = false;
 			}
 		}
-		return true;
+		return ret;
 	}
-	static uniformCached(gl, sobj) {
+	static updateStruct(gl, sobj) {
 		if(!(sobj instanceof GLStruct)) return false;
-		for(const key in sobj) {
-			if(key == "cached_positions") continue;
-			const loc = sobj.cached_positions[key];
-			if(loc) {
-				const val = sobj[key];
-				if(val instanceof GLStruct &&
-					!this.uniformCached(gl, val)) {
-					return false;
-				} else if(val instanceof glMatrix.glMatrix.ARRAY_TYPE) {
+		let ret = true;
+		for(const key in sobj.bindings) {
+			const val = sobj[key];
+			if(val instanceof GLStruct) {
+				ret &= this.updateStruct(gl, val);
+			} else {
+				const loc = sobj.bindings[key];
+				if(val instanceof glMatrix.glMatrix.ARRAY_TYPE) {
 					switch(val.length) {
 						case 2: gl.uniform2fv(loc, val); continue;
 						case 3: gl.uniform3fv(loc, val); continue;
 						case 4: gl.uniform4fv(loc, val); continue;
 						case 9: gl.uniformMatrix3fv(loc, false, val); continue;
 						case 16: gl.uniformMatrix4fv(loc, false, val); continue;
+						default: ret = false;
 					}
 				} else {
 					gl.uniform1f(loc, val);
 				}
 			}
 		}
+		return ret;
 	}
+
 }
 
-class Material extends GLStruct {
+
+
+class Material extends GLStruct {	// This doesn't have to be the only material type
 	constructor(r, g, t, rfi) {
 		super();
-		this.roughness = r;
-		this.glossiness = g;
-		this.transparency = t;
-		this.refraction_index = rfi;
+		this.roughness = r ?? 1;
+		this.glossiness = g ?? 0;
+		this.transparency = t ?? 0;
+		this.refraction_index = rfi ?? 1;
 	}
 
-	updateCached(gl) {
-		gl.uniform1f(this.cached_positions.roughness, this.roughness);
-		gl.uniform1f(this.cached_positions.glossiness, this.glossiness);
-		gl.uniform1f(this.cached_positions.transparency, this.transparency);
-		gl.uniform1f(this.cached_positions.refraction_index, this.refraction_index);
+	update(gl) {	// overload the default
+		gl.uniform1f(this.bindings.roughness, this.roughness);
+		gl.uniform1f(this.bindings.glossiness, this.glossiness);
+		gl.uniform1f(this.bindings.transparency, this.transparency);
+		gl.uniform1f(this.bindings.refraction_index, this.refraction_index);
 		return true;
 	}
+
 }
-class Sphere extends GLStruct {
-	constructor(pos, rad, lum, clr, mat) {
+function Mat(r, g, t, rfi) { return new Material(r, g, t, rfi); }
+/**
+ * All interactables should "have" (not be) a surface. (this makes it easy to send to glsl)
+ * This contains / defines ray redirection behavior as well as albedo and luminance
+ */
+class Surface extends GLStruct {
+	constructor(lum, clr, mat) {
 		super();
-		this.position = pos ?? vec3.create();
-		this.radius = rad ?? 1;
 		this.luminance = lum ?? 0;
-		this.albedo = clr ?? vec3.create();
-		this.mat = mat ?? new Material();
+		this.albedo = clr ?? vec3.create();	// might need to expand this into a texture system if we want image textures
+		this.mat = mat ?? new Material();	// and expand this if we need more exotic material defs
 	}
 
-	updateCached(gl) {
-		gl.uniform3fv(this.cached_positions.position, this.position);
-		gl.uniform1f(this.cached_positions.radius, this.radius);
-		gl.uniform1f(this.cached_positions.luminance, this.luminance);
-		gl.uniform3fv(this.cached_positions.albedo, this.albedo);
-		this.mat.updateCached(gl);
-		return true;
+	update(gl) {
+		gl.uniform1f(this.bindings.luminance, this.luminance);
+		gl.uniform3fv(this.bindings.albedo, this.albedo);
+		return this.mat.update(gl);
 	}
+
+}
+function Srf(lum, clr, mat) { return new Surface(lum, clr, mat); }
+class Sphere extends GLStruct {
+	constructor(pos, rad, surface) {
+		super();
+		this.center = pos ?? vec3.create();
+		this.radius = rad ?? 1;
+		this.surface = surface ?? new Surface();
+	}
+
+	update(gl) {	// overload the default
+		console.log(this);
+		gl.uniform3fv(this.bindings.center, this.center);
+		gl.uniform1f(this.bindings.radius, this.radius);
+		return this.surface.update(gl);
+	}
+
+}
+class Triangle extends GLStruct {
+	constructor(a, b, c, surface) {
+		super();
+		this.a = a ?? vec3.create();
+		this.b = b ?? vec3.create();
+		this.c = c ?? vec3.create();
+		this.surface = surface ?? new Surface();
+		// buffers for rotating, resizing, moving, etc (ex. center pos)
+	}
+
+	update(gl) {
+		gl.uniform3fv(this.bindings.a, this.a);
+		gl.uniform3fv(this.bindings.b, this.b);
+		gl.uniform3fv(this.bindings.c, this.c);
+		return this.surface.update(gl);
+	}
+
 }
 
 class Scene {
@@ -114,22 +160,22 @@ class Scene {
 	cacheSphereLocations(gl, program, arrname) {
 		for(let i = 0; i < this.spheres.length; i++) {
 			const n = arrname + '[' + i + ']';
-			this.spheres[i].cachePos(gl, program, n);
+			this.spheres[i].bind(gl, program, n);
 		}
 	}
 	updateSpheres(gl) {
 		for(let i =0; i < this.spheres.length; i++) {
-			this.spheres[i].updateCached(gl);
+			this.spheres[i].update(gl);
 		}
 	}
 
 	trySelect(src) {
-		let hit = new Hit;
 		let t_max = Number.POSITIVE_INFINITY;
 		let ret = -1;
 		for(let i = 0; i < this.spheres.length; i++) {
-			if(sphereIntersect(src, this.spheres[i], hit, 0, t_max)) {
-				t_max = hit.time;
+			let t;
+			if(t = Sphere.test(src, this.spheres[i], hit, 0, t_max)) {
+				t_max = t;
 				ret = i;
 			}
 		}
@@ -139,8 +185,19 @@ class Scene {
 
 
 
-function sphereIntersect(src, s, hit, t_min = 0, t_max = Number.POSITIVE_INFINITY) {
-	let o = vec3.sub(vec3.create(), src.origin, s.position);
+Sphere.test = function(src, s, t_min = 0, t_max = Number.POSITIVE_INFINITY) {
+	let o = vec3.sub(vec3.create(), src.origin, s.center);
+	let a = vec3.dot(src.direction, src.direction);
+	let b = 2 * vec3.dot(o, src.direction);
+	let c = vec3.dot(o, o) - (s.radius * s.radius);
+	let d = (b * b) - (4 * a * c);
+	if(d < 0) return 0;
+	let time = (Math.sqrt(d) + b) / (-2 * a);
+	if(time < t_min || time > t_max) return 0;
+	return time;
+}
+Sphere.interacts = function(src, s, hit, t_min = 0, t_max = Number.POSITIVE_INFINITY) {
+	let o = vec3.sub(vec3.create(), src.origin, s.center);
 	let a = vec3.dot(src.direction, src.direction);
 	let b = 2 * vec3.dot(o, src.direction);
 	let c = vec3.dot(o, o) - (s.radius * s.radius);
@@ -148,229 +205,17 @@ function sphereIntersect(src, s, hit, t_min = 0, t_max = Number.POSITIVE_INFINIT
 	if(d < 0) return false;
 	hit.time = (Math.sqrt(d) + b) / (-2 * a);
 	if(hit.time < t_min || hit.time > t_max) return false;
-	// vec3.scaleAndAdd(hit.normal.origin, src.origin, src.direction, hit.time);
-	// vec3.sub(hit.normal.direction, hit.normal.origin, s.position);
-	// vec3.scale(hit.normal.direction, hit.normal.direction, 1 / s.radius);
-	// if(hit.reverse_intersect = vec3.dot(hit.normal.direction, src.direction) > 0) {
-	// 	vec3.negate(hit.normal.direction, hit.normal.direction);
-	// }
+	vec3.scaleAndAdd(hit.normal.origin, src.origin, src.direction, hit.time);
+	vec3.sub(hit.normal.direction, hit.normal.origin, s.center);
+	vec3.scale(hit.normal.direction, hit.normal.direction, 1 / s.radius);
+	if(hit.reverse_intersect = vec3.dot(hit.normal.direction, src.direction) > 0) {
+		vec3.negate(hit.normal.direction, hit.normal.direction);
+	}
 	return true;
 }
+Triangle.test = function(src, t, t_min = 0, t_max = Number.POSITIVE_INFINITY) {
 
-// // technically unecessary base interfaces
-// class Interactable {
-//     interacts(src, hit, t_min, t_max) { // Source ray{Ray}, output hit{Hit}, min/max 'times'{numbers}
-//         return this;
-//     }
-//     redirect(src, hit, redirect) {  // Source ray{Ray}, hit point{Hit}, redirected ray{Ray}
-//         return false;               // returns if redirect happened
-//     }
-//     emmission(hit) { // Hit point{Hit} -- if the UV coords are not generated, they will be within this function, and then used
-//         return 0;
-//     }
-//     albedo(hit) {   // Hit point{Hit}
-//         return new Vec3();
-//     }
-//     invokeMenu() {  // may need to pass in some sort of context, or just do this completely differently --> returns if anything was updated
-//         return false;
-//     }
-// }
-// class Material {
-//     redirect(src, hit, redirect) {  // Identical to the method within Interactable, although this is the underlying worker
-//         return false;
-//     }
-//     invokeMenu() {
-//         return false;
-//     }
-// }
-// class Texture {
-//     albedo(uv) {    // underlying worker for Interactable --> converts UV coords to color
-//         return new Vec3();
-//     }
-//     invokeMenu() {
-//         return false;
-//     }
-// }
+}
+Triangle.interacts = function(src, t, hit, t_min = 0, t_max = Number.POSITIVE_INFINITY) {
 
-
-// // Property implementations
-// class PhysicalBase extends Material {
-//     constructor(roughness = 1, glossiness = 0, transparency = 0, refr_index = 1) {
-//         super();
-//         this.roughness = roughness;
-//         this.glossiness = glossiness;
-//         this.transparency = transparency;
-//         this.refraction_index = refr_index;
-//     }
-
-//     static DEFAULT = new PhysicalBase(1, 0, 0, 1);
-
-//     redirect(src, hit, redirect) {
-//         let seed = Math.random();
-//         if(seed < this.roughness) {
-//             return PhysicalBase.diffuse(hit.normal, redirect);
-//         } else if(seed < this.transparency) {
-//             return PhysicalBase.refract(src, hit, this.refraction_index, redirect, this.glossiness);
-//         } else {
-//             return PhysicalBase.reflect(src, hit, redirect, this.glossiness);
-//         }
-//     }
-//     invokeMenu() {
-
-//     }
-
-//     static diffuse(normal, redirect) {
-//         redirect.origin = normal.origin;
-//         redirect.direction = Vec3._add(normal.direction, Vec3.randomInUnitSphere());
-//         if( // if the random direction exactly inverts the normal, reset to normal direction
-//             Math.abs(redirect.direction.x) < CCT.EPSILON &&
-//             Math.abs(redirect.direction.y) < CCT.EPSILON &&
-//             Math.abs(redirect.direction.z) < CCT.EPSILON
-//         ) {
-//             redirect.direction = normal.direction;
-//         }
-//         return true;
-//     }
-//     static reflect(src, hit, redirect, gloss) {
-//         gloss = gloss || 0;
-//         redirect.origin = hit.normal.origin;
-//         redirect.direction = Vec3._sub( // (in - norm * dot(norm, in) * 2) + (random * glossiness)
-//             src.direction, Vec3._scale(
-//                 hit.normal.direction,
-//                 Vec3._dot(hit.normal.direction, src.direction) * 2)
-//         ).add(Vec3.randomInUnitSphere().scale(gloss));
-//         return redirect.direction.dot(hit.normal.direction) > 0;
-//     }
-//     static reflectance(cos, ir) {
-//         return Math.pow( ((1 - ir) / (1 + ir)), 2) +
-//             ((1 - ir) * Math.pow( (1 - cos), 5));
-//     }
-//     static refract(src, hit, refr_index, redirect, gloss) {
-//         let cos_theta = Math.min((Vec3._negate(src.direction).dot(hit.normal.direction) * 2), 1);
-//         let sin_theta = Math.sqrt(1 - cos_theta * cos_theta);
-//         refr_index = hit.reverse_intersect ? refr_index : (1 / refr_index);
-//         if(refr_index * sin_theta > 1 ||
-//             this.reflectance(cos_theta, refr_index) > Math.random() // the higher the reflectance, the more likely to reflect (but still random)
-//         ) {
-//             return this.reflect(src, hit, redirect, gloss);
-//         }
-//         let r_out_perp = Vec3._scale(hit.normal.direction, cos_theta).add(src.direction).scale(refr_index);
-//         let r_out_para = Vec3._scale(hit.normal.direction, -Math.sqrt(Math.abs(1 - Vec3._dot(r_out_perp, r_out_perp))));
-//         redirect.direction = Vec3._add(r_out_perp, r_out_para);
-//         redirect.origin = hit.normal.origin;
-//         return true;
-//     }
-// }
-// class StaticTexture extends Texture {
-//     constructor(r, g, b) {
-//         super();
-//         if(r instanceof CCT.Vector3) {
-//             this.color = r.clone();
-//         } else if(r && g === undefined && b === undefined) {
-//             this.color = new Vec3(r);
-//         } else {
-//             this.color = new Vec3(r || 0, g || 0, b || 0);
-//         }
-//     }
-
-//     static DEFAULT = new StaticTexture(0.5);
-
-//     albedo(uv) {
-//         return this.color.clone();
-//     }
-// }
-// class ImageTexture extends Texture {
-//     // currently not an important feature
-// }
-
-// // Object implementations
-// class Sphere extends Interactable {
-//     constructor(pos, rad, material = PhysicalBase.DEFAULT, texture = StaticTexture.DEFAULT, lum = 0) {
-//         super();
-//         this.position = new Vec3(pos);
-//         this.radius = rad;
-//         this.material = material;
-//         this.texture = texture;
-//         this.luminance = lum;
-//     }
-
-//     interacts(src, hit, t_min = CCT.EPSILON, t_max = Number.POSITIVE_INFINITY) {
-//         let o = Vec3._sub(src.origin, this.position);
-//         let a = Vec3._dot(src.direction, src.direction);
-//         let b = 2 * Vec3._dot(o, src.direction);
-//         let c = Vec3._dot(o, o) - (this.radius * this.radius);
-//         let d = (b * b) - (4 * a * c);
-//         if(d < 0)
-//             { return null; }
-//         hit.ptime = (Math.sqrt(d) + b) / (-2 * a);
-//         if(hit.ptime < t_min || hit.ptime > t_max)
-//             { return null; }
-//         hit.normal.origin = Vec3._scale(src.direction, hit.ptime).add(src.origin);
-//         hit.normal.direction = Vec3._sub(hit.normal.origin, this.position).normalize();
-//         if(hit.reverse_intersect = (hit.normal.direction.dot(src.direction)) > 0) {
-//             hit.normal.direction.negate();
-//         }
-//         return this;
-//     }
-//     redirect(src, hit, redirect) {
-//         return this.material ? this.material.redirect(src, hit, redirect) : false;
-//     }
-//     emmission(hit) {
-//         return this.luminance;
-//     }
-//     albedo(hit) {
-//         if(!this.texture) {
-//             return new Vec3();
-//         }
-//         if(hit.uv[0] == -1 && hit.uv[1] == -1) {    // convert hit point to UV coord
-//             hit.uv[0] = (Math.atan2(-hit.normal.direction.z, hit.normal.direction.x) + Math.PI) / (2 * Math.PI);
-//             hit.uv[1] = Math.acos(-hit.normal.direction.y) / Math.PI;
-//         }
-//         return this.texture.albedo(hit.uv);
-//     }
-//     invokeMenu() {
-
-//     }
-
-// }
-// class Triangle extends Interactable {
-//     constructor() {
-//         super();
-//     }
-// }
-// class Quad extends Interactable {
-//     constructor() {
-//         super();
-//     }
-// }
-
-// class Scene extends Interactable {
-//     constructor(objs = [], clr = new Vec3(0.5)) {
-//         super();
-//         this.objects = objs;
-//         this.sky_color = clr;
-//     }
-
-//     interacts(ray, hit, t_min = CCT.EPSILON, t_max = Number.POSITIVE_INFINITY) {
-//         let temp = new Hit();
-// 		let ret = null;
-// 		hit.ptime = t_max;
-// 		for(let idx = 0; idx < this.objects.length; idx++) {
-// 			let i = null;
-// 			if(i = this.objects[idx].interacts(ray, temp, t_min, hit.ptime)) {
-// 				hit.reverse_intersect = temp.reverse_intersect;
-// 				hit.ptime = temp.ptime;
-// 				hit.normal = temp.normal;
-// 				ret = i;
-// 			}
-// 		}
-// 		return ret;
-//     }
-//     albedo(hit) {
-//         return this.sky_color.clone();
-//     }
-//     invokeMenu() {
-
-//     }
-
-// }
+}

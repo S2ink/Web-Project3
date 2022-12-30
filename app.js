@@ -55,15 +55,15 @@ const uni_total_samples = gl.getUniformLocation(gl_render, "total_samples");
 
 const scene = new Scene();
 scene.spheres = [
-	new Sphere(Vec3(2.1, 0.1, 2.5), 0.8, 2.0, Vec3(0.5, 0.2, 0.2), new Material(1.0, 0.0, 1.0, 1.4)),
-	new Sphere(Vec3(0, 0.0, 2.5), 0.5, 0.0, Vec3(1,1,1), new Material(0.0, 0.0, 1.0, 1.7)),
-	new Sphere(Vec3(0, -10, 4), 9.6, 0.0, Vec3(0.7, 0.6, 0.8), new Material(1.0, 0.5, 0.0, 0.0)),
-	new Sphere(Vec3(0.5, 1.8, 4.5), 0.7, 2.0, Vec3(0.1, 0.7, 0.7), new Material(1.0, 0.0, 0.0, 0.0)),
-	new Sphere(Vec3(-2, -0.3, 7), 3.0, 0.0, Vec3(0.5, 0.7, 0.2), new Material(1.0, 0.1, 0.0, 0.0)),
-	new Sphere(Vec3(-2, 0, 3), 0.7, 0.0, Vec3(0.7, 0.5, 0.1), new Material(0.0, 0.0, 0.0, 0.0)),
-	new Sphere(Vec3(0, 0, 4), 0.5, 0.0, Vec3(0, 0.5, 0.5), new Material(1.0, 0.0, 1.0, 1.5)),
-	new Sphere(Vec3(2, 0, 5), 1.6, 0.0, Vec3(0.2, 0.7, 0.3), new Material(0.0, 0.0, 0.0, 0.0)),
-	new Sphere(Vec3(-3, 4, 4), 0.3, 100.0, Vec3(0.7, 0.2, 0.8), new Material(1.0, 0.0, 0.0, 0.0))
+	new Sphere(Vec3(2.1, 0.1, 2.5), 0.8, Srf(2.0, Vec3(0.5, 0.2, 0.2), Mat(1.0, 0.0, 1.0, 1.4))),
+	new Sphere(Vec3(0, 0.0, 2.5), 0.5, Srf(0.0, Vec3(1,1,1), Mat(0.0, 0.0, 1.0, 1.7))),
+	new Sphere(Vec3(0, -10, 4), 9.6, Srf(0.0, Vec3(0.7, 0.6, 0.8), Mat(1.0, 0.5, 0.0, 0.0))),
+	new Sphere(Vec3(0.5, 1.8, 4.5), 0.7, Srf(2.0, Vec3(0.1, 0.7, 0.7), Mat(1.0, 0.0, 0.0, 0.0))),
+	new Sphere(Vec3(-2, -0.3, 7), 3.0, Srf(0.0, Vec3(0.5, 0.7, 0.2), Mat(1.0, 0.1, 0.0, 0.0))),
+	new Sphere(Vec3(-2, 0, 3), 0.7, Srf(0.0, Vec3(0.7, 0.5, 0.1), Mat(0.0, 0.0, 0.0, 0.0))),
+	new Sphere(Vec3(0, 0, 4), 0.5, Srf(0.0, Vec3(0, 0.5, 0.5), Mat(1.0, 0.0, 1.0, 1.5))),
+	new Sphere(Vec3(2, 0, 5), 1.6, Srf(0.0, Vec3(0.2, 0.7, 0.3), Mat(0.0, 0.0, 0.0, 0.0))),
+	new Sphere(Vec3(-3, 4, 4), 0.3, Srf(100.0, Vec3(0.7, 0.2, 0.8), Mat(1.0, 0.0, 0.0, 0.0)))
 ];
 scene.cacheSphereLocations(gl, gl_trace, "spheres");
 scene.updateSpheres(gl);

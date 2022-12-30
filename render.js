@@ -106,7 +106,8 @@ const fragment_src = `#version 300 es
 	precision mediump float;
 #endif
 
-#define SPHERE_ARRAY_LEN 64	// len for each interactable type... (set by scene)
+#define SPHERE_ARRAY_LEN 64		// len for each interactable type... (set by scene)
+#define TRIANGLE_ARRAY_LEN 64
 //#define MATERIALS_ARRAY_LEN 64	// set by scene - if we want to save memory by compacting reused materials
 //#define TEXTURES_ARRAY_LEN 64		// set by scene - if we ever add dynamic texturing
 
@@ -121,12 +122,20 @@ struct Material {
 	float transparency;
 	float refraction_index;
 };
-struct Sphere {
-	vec3 position;
-	float radius;
-	float luminance;	// this could be a map	(Texture)
-	vec3 albedo;		// and this				(Texture)
+struct Surface {
+	float luminance;
+	vec3 albedo;
 	Material mat;
+};
+
+struct Sphere {
+	vec3 center;
+	float radius;
+	Surface surface;
+};
+struct Triangle {
+	vec3 a, b, c;
+	Surface surface;
 };
 
 uniform sampler2D acc_frame;
@@ -140,8 +149,11 @@ uniform float simple;
 
 uniform vec3 skycolor;
 uniform Sphere spheres[SPHERE_ARRAY_LEN];
+uniform Triangle triangles[TRIANGLE_ARRAY_LEN];
 uniform float sphere_count;
+uniform float triangle_count;
 uniform float selected_sphere;
+// selected triangle(s)
 
 
 const vec3 _rc1_ = vec3(12.9898, 78.233, 151.7182);
@@ -288,7 +300,7 @@ bool redirectRay(in Ray src, in Hit hit, in Material mat, out Ray ret) {
 
 
 bool interactsSphere(in Ray ray, in Sphere s, inout Hit hit, float t_min, float t_max) {
-	vec3 o = ray.origin - s.position;
+	vec3 o = ray.origin - s.center;
 	float a = dot(ray.direction, ray.direction);
 	float b = 2.0 * dot(o, ray.direction);
 	float c = dot(o, o) - (s.radius * s.radius);
@@ -304,15 +316,16 @@ bool interactsSphere(in Ray ray, in Sphere s, inout Hit hit, float t_min, float 
 		}
 	}
 	hit.normal.origin = ray.direction * hit.time + ray.origin;
-	hit.normal.direction = normalize(hit.normal.origin - s.position);
+	hit.normal.direction = normalize(hit.normal.origin - s.center);
 	hit.reverse_intersect = dot(hit.normal.direction, ray.direction) > 0.0;
-	hit.normal.origin = s.position + hit.normal.direction * s.radius;
+	hit.normal.origin = s.center + hit.normal.direction * s.radius;
 	if(hit.reverse_intersect) {
 		hit.normal.direction *= -1.0;
 	}
 	//hit.normal.origin += hit.normal.direction * EPSILON;	// no accidental re-collision
 	return true;
 }
+// bool interactsTriangle(in Ray ray, in Sphere s, inout Hit hit, float t_min, float t_max) {}
 
 vec3 getSourceRay(in vec2 proportional, in mat4 inv_proj, in mat4 inv_view) {
 	vec4 t = inv_proj * vec4( (proportional * 2.0 - 1.0), 1.0, 1.0);
@@ -326,7 +339,7 @@ vec3 evalRaySimple(in Ray ray) {
 	for(int i = 0; i < int(sphere_count); i++) {
 		if(interactsSphere(ray, spheres[i], hit, EPSILON, t_max)) {
 			t_max = hit.time;
-			alb = spheres[i].albedo;
+			alb = spheres[i].surface.albedo;
 		}
 	}
 	return alb;
@@ -346,14 +359,14 @@ vec3 evalRay(in Ray ray, in int bounces) {
 			}
 		}
 		if(idx >= 0) {
-			float lum = spheres[idx].luminance;
-			vec3 clr = spheres[idx].albedo;
+			float lum = spheres[idx].surface.luminance;
+			vec3 clr = spheres[idx].surface.albedo;
 			if(b == 0 || ((clr.x + clr.y + clr.z) / 3.0 * lum) >= 1.0) {
 				total += cache * clr * lum;
 				return total;
 			}
 			Ray redirect;
-			if(redirectRay(current, hit, spheres[idx].mat, redirect)) {
+			if(redirectRay(current, hit, spheres[idx].surface.mat, redirect)) {
 				cache *= clr;
 				total += cache * lum;
 				current = redirect;
