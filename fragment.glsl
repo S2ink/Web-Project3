@@ -4,11 +4,12 @@
 	precision mediump float;
 #endif
 
-#define SPHERE_ARRAY_LEN 64	// len for each interactable type... (set by scene)
+#define SPHERE_ARRAY_LEN 32		// len for each interactable type... (set by scene)
+#define TRIANGLE_ARRAY_LEN 32
 //#define MATERIALS_ARRAY_LEN 64	// set by scene - if we want to save memory by compacting reused materials
 //#define TEXTURES_ARRAY_LEN 64		// set by scene - if we ever add dynamic texturing
 
-#define EPSILON 0.00001		// 10e-5
+#define EPSILON 0.00001		// 1e-5
 #define PI 3.14159265358979
 #define PI2 6.283185307179586
 #define PHI 1.61803398874989484820459
@@ -19,12 +20,20 @@ struct Material {
 	float transparency;
 	float refraction_index;
 };
-struct Sphere {
-	vec3 position;
-	float radius;
-	float luminance;	// this could be a map	(Texture)
-	vec3 albedo;		// and this				(Texture)
+struct Surface {
+	float luminance;
+	vec3 albedo;
 	Material mat;
+};
+
+struct Sphere {
+	vec3 center;
+	float radius;
+	Surface surface;
+};
+struct Triangle {
+	vec3 a, b, c;
+	Surface surface;
 };
 
 uniform sampler2D acc_frame;
@@ -34,10 +43,14 @@ uniform vec2 fsize;
 uniform float realtime;
 uniform float samples;
 uniform float bounces;
+uniform float simple;
 
-uniform Sphere spheres[SPHERE_ARRAY_LEN];
-uniform float sphere_count;
 uniform vec3 skycolor;
+uniform Sphere spheres[SPHERE_ARRAY_LEN];
+uniform Triangle triangles[TRIANGLE_ARRAY_LEN];
+uniform float sphere_count;
+uniform float triangle_count;
+// uniform float selected
 
 
 const vec3 _rc1_ = vec3(12.9898, 78.233, 151.7182);
@@ -184,7 +197,7 @@ bool redirectRay(in Ray src, in Hit hit, in Material mat, out Ray ret) {
 
 
 bool interactsSphere(in Ray ray, in Sphere s, inout Hit hit, float t_min, float t_max) {
-	vec3 o = ray.origin - s.position;
+	vec3 o = ray.origin - s.center;
 	float a = dot(ray.direction, ray.direction);
 	float b = 2.0 * dot(o, ray.direction);
 	float c = dot(o, o) - (s.radius * s.radius);
@@ -200,13 +213,39 @@ bool interactsSphere(in Ray ray, in Sphere s, inout Hit hit, float t_min, float 
 		}
 	}
 	hit.normal.origin = ray.direction * hit.time + ray.origin;
-	hit.normal.direction = normalize(hit.normal.origin - s.position);
+	hit.normal.direction = normalize(hit.normal.origin - s.center);
 	hit.reverse_intersect = dot(hit.normal.direction, ray.direction) > 0.0;
-	hit.normal.origin = s.position + hit.normal.direction * s.radius;
+	hit.normal.origin = s.center + hit.normal.direction * s.radius;
 	if(hit.reverse_intersect) {
 		hit.normal.direction *= -1.0;
 	}
 	//hit.normal.origin += hit.normal.direction * EPSILON;	// no accidental re-collision
+	return true;
+}
+bool interactsTriangle(in Ray ray, in Triangle t, inout Hit hit, float t_min, float t_max) {
+	vec3 h, s, q;
+	vec3 s1 = t.b - t.a, s2 = t.c - t.a;
+	float a, f, u, v;
+
+	h = cross(ray.direction, s2);
+	a = dot(s1, h);
+	if(a > -EPSILON && a < EPSILON) { return false; }
+	f = 1.0 / a;
+	s = ray.origin - t.a;
+	u = f * dot(s, h);
+	if(u < 0.0 || u > 1.0) { return false; }
+	q = cross(s, s1);
+	v = f * dot(ray.direction, q);
+	if(v < 0.0 || u + v > 1.0) { return false; }
+
+	hit.time = f * dot(s2, q);
+	if(hit.time <= EPSILON || hit.time < t_min || hit.time > t_max) { return false; }
+	hit.normal.origin = ray.origin + ray.direction * hit.time;
+	hit.normal.direction = normalize(cross(s1, s2));
+	hit.reverse_intersect = false;
+	if(dot(hit.normal.direction, ray.direction) > 0.0) {
+		hit.normal.direction *= -1.0;
+	}
 	return true;
 }
 
@@ -215,35 +254,56 @@ vec3 getSourceRay(in vec2 proportional, in mat4 inv_proj, in mat4 inv_view) {
 	return vec3( inv_view * vec4( normalize(vec3(t) / t.w), 0) );
 }
 
+vec3 evalRaySimple(in Ray ray) {
+	Hit hit;
+	float t_max = 10000000000000.;
+	vec3 alb = skycolor;
+	for(int i = 0; i < int(sphere_count); i++) {
+		if(interactsSphere(ray, spheres[i], hit, EPSILON, t_max)) {
+			t_max = hit.time;
+			alb = spheres[i].surface.albedo;
+		}
+	}
+	for(int i = 0; i < int(triangle_count); i++) {
+		if(interactsTriangle(ray, triangles[i], hit, EPSILON, t_max)) {
+			t_max = hit.time;
+			alb = triangles[i].surface.albedo;
+		}
+	}
+	return alb;
+}
 vec3 evalRay(in Ray ray, in int bounces) {
 	vec3 total = vec3(0.0);
 	vec3 cache = vec3(1.0);
 	Ray current = ray;
 	for(int b = bounces; b >= 0; b--) {
 		Hit hit, tmp;
+		Surface srf;
 		hit.time = 10000000000000.;
-		int idx = -1;
+		bool valid = false;
 		for(int i = 0; i < int(sphere_count); i++) {
 			if(interactsSphere(current, spheres[i], tmp, EPSILON, hit.time)) {
 				hit = tmp;
-				idx = i;
+				srf = spheres[i].surface;
+				valid = true;
 			}
 		}
-
-		// if(idx >= 0) {
-		// 	return spheres[idx].albedo;
-		// }
-		// return skycolor;
-
-		if(idx >= 0) {
-			float lum = spheres[idx].luminance;
-			vec3 clr = spheres[idx].albedo;
+		for(int i = 0; i < int(triangle_count); i++) {
+			if(interactsTriangle(current, triangles[i], tmp, EPSILON, hit.time)) {
+				hit = tmp;
+				srf = triangles[i].surface;
+				valid = true;
+			}
+		}
+		if(valid) {
+			float lum = srf.luminance;
+			vec3 clr = srf.albedo;
 			if(b == 0 || ((clr.x + clr.y + clr.z) / 3.0 * lum) >= 1.0) {
 				total += cache * clr * lum;
 				return total;
 			}
 			Ray redirect;
-			if(redirectRay(current, hit, spheres[idx].mat, redirect)) {
+			if(redirectRay(current, hit, srf.mat, redirect)) {
 				cache *= clr;
 				total += cache * lum;
 				current = redirect;
@@ -260,10 +320,18 @@ out vec4 fragColor;
 void main() {
 	Ray src = Ray(cam_pos, vec3(0.0));
 	vec3 clr = texture(acc_frame, gl_FragCoord.xy / fsize).rgb;
-	for(int i = 0; i < int(samples); i++) {
-		float r = rand();
-		src.direction = getSourceRay((vec2(gl_FragCoord) + vec2(r)) / fsize, iproj, iview);
-		clr += evalRay(src, int(bounces));
+	if(simple == 1.0) {
+		for(int i = 0; i < int(samples); i++) {
+			float r = rand();
+			src.direction = getSourceRay((gl_FragCoord.xy + vec2(r)) / fsize, iproj, iview);
+			clr += evalRaySimple(src);
+		}
+	} else {
+		for(int i = 0; i < int(samples); i++) {
+			float r = rand();
+			src.direction = getSourceRay((vec2(gl_FragCoord) + vec2(r)) / fsize, iproj, iview);
+			clr += evalRay(src, int(bounces));
+		}
 	}
 	fragColor = vec4(clr, 1.0);
 }
