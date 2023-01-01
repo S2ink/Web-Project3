@@ -87,6 +87,15 @@ class Material extends GLStruct {	// This doesn't have to be the only material t
 		this.refraction_index = rfi ?? 1;
 	}
 
+	copy() {
+		return new Material(
+			this.roughness,
+			this.glossiness,
+			this.transparency,
+			this.refraction_index
+		);
+	}
+
 	update(gl) {	// overload the default
 		gl.uniform1f(this.bindings.roughness, this.roughness);
 		gl.uniform1f(this.bindings.glossiness, this.glossiness);
@@ -107,6 +116,14 @@ class Surface extends GLStruct {
 		this.luminance = lum ?? 0;
 		this.albedo = clr ?? vec3.create();	// might need to expand this into a texture system if we want image textures
 		this.mat = mat ?? new Material();	// and expand this if we need more exotic material defs
+	}
+
+	copy() {
+		return new Surface(
+			this.luminance,
+			this.albedo,
+			this.mat.copy()
+		);
 	}
 
 	update(gl) {
@@ -144,6 +161,7 @@ class Triangle extends GLStruct {
 	}
 
 	update(gl) {
+		console.log(this);
 		gl.uniform3fv(this.bindings.a, this.a);
 		gl.uniform3fv(this.bindings.b, this.b);
 		gl.uniform3fv(this.bindings.c, this.c);
@@ -151,21 +169,61 @@ class Triangle extends GLStruct {
 	}
 
 }
+class Cube {
+	constructor() {
+		this.primatives = [];
+	}
+
+	static fromSize(w, h, d, o, srf) {
+
+	}
+	static fromPoints(a, b, c, d, e, f, g, h, srf) {
+		const q = new Cube();
+		const s = srf ?? new Surface();
+		q.primitives = [
+			new Triangle(a, b, c, s.copy()),	//       a
+			new Triangle(a, c, d, s.copy()),	//   b  |     d
+			new Triangle(a, b, h, s.copy()),	//  |  h  c  |
+			new Triangle(b, g, h, s.copy()),	// g     |  e
+			new Triangle(b, c, g, s.copy()),	//      f
+			new Triangle(c, f, g, s.copy()),
+			new Triangle(c, d, f, s.copy()),
+			new Triangle(d, f, e, s.copy()),
+			new Triangle(a, d, e, s.copy()),
+			new Triangle(a, h, e, s.copy()),
+			new Triangle(e, f, g, s.copy()),
+			new Triangle(g, h, e, s)
+		];
+		return q;
+	}
+}
 
 class Scene {
 	constructor() {
 		this.spheres = [];
+		this.triangles = [];
 	}
 
-	cacheSphereLocations(gl, program, arrname) {
+	bindSpheresArray(gl, program, arrname) {
 		for(let i = 0; i < this.spheres.length; i++) {
 			const n = arrname + '[' + i + ']';
 			this.spheres[i].bind(gl, program, n);
 		}
 	}
 	updateSpheres(gl) {
-		for(let i =0; i < this.spheres.length; i++) {
+		for(let i = 0; i < this.spheres.length; i++) {
 			this.spheres[i].update(gl);
+		}
+	}
+	bindTrianglesArray(gl, program, arrname) {
+		for(let i = 0; i < this.triangles.length; i++) {
+			const n = arrname + '[' + i + ']';
+			this.triangles[i].bind(gl, program, n);
+		}
+	}
+	updateTriangles(gl) {
+		for(let i = 0; i < this.triangles.length; i++) {
+			this.triangles[i].update(gl);
 		}
 	}
 
@@ -174,9 +232,16 @@ class Scene {
 		let ret = -1;
 		for(let i = 0; i < this.spheres.length; i++) {
 			let t;
-			if(t = Sphere.test(src, this.spheres[i], hit, 0, t_max)) {
+			if(t = Sphere.test(src, this.spheres[i], 0, t_max)) {
 				t_max = t;
 				ret = i;
+			}
+		}
+		for(let i = 0; i < this.triangles.length; i++) {
+			let t;
+			if(t = Triangle.test(src, this.triangles[i], 0, t_max)) {
+				t_max = t;
+				ret = i + this.spheres.length;
 			}
 		}
 		return ret;
@@ -214,8 +279,52 @@ Sphere.interacts = function(src, s, hit, t_min = 0, t_max = Number.POSITIVE_INFI
 	return true;
 }
 Triangle.test = function(src, t, t_min = 0, t_max = Number.POSITIVE_INFINITY) {
+	const EPSILON = 1e-5;
+	const s1 = vec3.sub(vec3.create(), t.b, t.a);	// side 1
+	const s2 = vec3.sub(vec3.create(), t.c, t.a);	// side 2
+	const h = vec3.create(), s = vec3.create(), q = vec3.create();
+	let a, f, u, v;
 
+	vec3.cross(h, src.direction, s2);
+	a = vec3.dot(s1, h);
+	if(a > -EPSILON && a < EPSILON) return 0;
+	f = 1 / a;
+	vec3.sub(s, src.origin, t.a);
+	u = f * vec3.dot(s, h);
+	if(u < 0 || u > 1) return 0;
+	vec3.cross(q, s, s1);
+	v = f * vec3.dot(src.direction, q);
+	if(v < 0 || u + v > 1) return 0;
+
+	let time = f * vec3.dot(s2, q);
+	if(time <= EPSILON || time < t_min || time > t_max) return 0;
+	return time;
 }
 Triangle.interacts = function(src, t, hit, t_min = 0, t_max = Number.POSITIVE_INFINITY) {
+	const EPSILON = 1e-5;
+	const s1 = vec3.sub(vec3.create(), t.b, t.a);	// side 1 -- buffer these?
+	const s2 = vec3.sub(vec3.create(), t.c, t.a);	// side 2
+	const h = vec3.create(), s = vec3.create(), q = vec3.create();
+	let a, f, u, v;
 
+	vec3.cross(h, src.direction, s2);
+	a = vec3.dot(s1, h);
+	if(a > -EPSILON && a < EPSILON) return false;
+	f = 1 / a;
+	vec3.sub(s, src.origin, t.a);
+	u = f * vec3.dot(s, h);
+	if(u < 0 || u > 1) return false;
+	vec3.cross(q, s, s1);
+	v = f * vec3.dot(src.direction, q);
+	if(v < 0 || u + v > 1) return false;
+
+	hit.time = f * vec3.dot(s2, q);
+	if(hit.time <= EPSILON || hit.time < t_min || hit.time > t_max) return false;
+	vec3.scaleAndAdd(hit.normal.origin, src.origin, src.direction, hit.time);
+	vec3.cross(hit.normal.direction, s1, s2);
+	if(vec3.dot(hit.normal.direction, src.direction) > 0) {
+		vec3.negate(hit.normal.direction, hit.normal.direction);
+	}
+	hit.reverse_intersect = false;
+	return true;
 }
