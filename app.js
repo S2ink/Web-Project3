@@ -91,6 +91,7 @@ gl.uniform1f(uni_triangle_count, scene.triangles.length);
 const ui = {
 	elem_fsize_selector : document.getElementById("fixed-fsize-select"),
 	elem_fsize_display : document.getElementById("fsize-display"),
+	elem_downscale : document.getElementById("downscale"),
 	elem_cam_fov : document.getElementById("cam-fov"),
 	// elem_cam_nearclip : document.getElementById("cam-nearclip"),
 	// elem_cam_farclip : document.getElementById("cam-farclip"),
@@ -121,6 +122,7 @@ const ui = {
 		fullscreen : false,
 		_width : width,		// these are both a cache for fullscreen and a buffer for resize events
 		_height : height,
+		scale : 1
 	},
 	resize_listener : null,
 
@@ -132,6 +134,7 @@ const ui = {
 
 };
 
+ui.downscaling = function() { return parseFloat(this.elem_downscale.value); }
 ui.updateFov = function() { return fov != (fov = parseFloat(this.elem_cam_fov.value)); }
 // ui.updateNearClip = function() { return c_near != (c_near = parseFloat(this.elem_cam_nearclip.value)); }
 // ui.updateFarClip = function() { return c_far != (c_far = parseFloat(this.elem_cam_farclip.value)); }
@@ -233,6 +236,13 @@ ui.onResSelect = function(e) {
 		ui.fsize.fixed = true;
 	}
 }
+ui.onScaling = function(e) {
+	let v = ui.downscaling();
+	if(v > 0) {
+		ui.fsize.scale = v;
+		ui.fsize.changed = true;
+	}
+}
 ui.onFullScreen = function(e) {
 	ui.fsize.fullscreen = !!document.fullscreenElement;
 	ui.fsize.changed = true;
@@ -257,6 +267,7 @@ document.body.addEventListener('keydown', ui.onKeyDown);
 document.body.addEventListener('keyup', ui.onKeyUp);
 document.addEventListener('fullscreenchange', ui.onFullScreen);
 ui.elem_fsize_selector.addEventListener('change', ui.onResSelect);
+ui.elem_downscale.addEventListener('input', ui.onScaling);
 (ui.resize_listener = new ResizeObserver(ui.onResize)).observe(frame);
 ui.elem_sky_color.addEventListener('input', ui.scene.onSkyChange);
 
@@ -267,6 +278,8 @@ function genTextureRGBA32F(gl, w, h) {
 	gl.bindTexture(gl.TEXTURE_2D, t);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);	// <-- textbuff_type (can always use float in webgl2)
 	gl.bindTexture(gl.TEXTURE_2D, null);
 	return t;
@@ -352,11 +365,15 @@ function renderTick(timestamp) {
 		if(ui.fsize.fullscreen) {
 			ui.fsize._width = width;		// cache old size
 			ui.fsize._height = height;
-			canvas.width = width = window.screen.width;
-			canvas.height = height = window.screen.height;
+			canvas.style.width = width = window.screen.width;
+			canvas.style.height = height = window.screen.height;
+			canvas.width = width / ui.fsize.scale;
+			canvas.height = height / ui.fsize.scale;
 		} else {
-			canvas.width = width = ui.fsize._width;
-			canvas.height = height = ui.fsize._height;
+			canvas.style.width = (width = ui.fsize._width) + 'px';
+			canvas.style.height = (height = ui.fsize._height) + 'px';
+			canvas.width = width / ui.fsize.scale;
+			canvas.height = height / ui.fsize.scale;
 			if(ui.fsize.fixed) {
 				frame.style.width = width;
 				frame.style.height = height;
@@ -386,10 +403,10 @@ function renderTick(timestamp) {
 		gl.uniformMatrix4fv(uni_iview, false, iview_mat);
 		gl.uniformMatrix4fv(uni_iproj, false, iproj_mat);
 		gl.uniform3fv(uni_cam_pos, camPos);
-		gl.uniform2f(uni_fsize, width, height);
+		gl.uniform2f(uni_fsize, width / ui.fsize.scale, height / ui.fsize.scale);
 		gl.uniform1f(uni_bounces, bounces);
 		gl.uniform1f(uni_simple, ui.scene.simple_render * 1);
-		accumulater.regenTextures(width, height);
+		accumulater.regenTextures(width / ui.fsize.scale, height / ui.fsize.scale);
 		accumulater.resetSamples();
 	}
 	if(accumulater.samples < ui.sampleLimit()) {
