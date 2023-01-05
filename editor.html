@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="icon" href="icon.png" type="image/png" sizes="16x16">
+        <link rel="stylesheet" href="style.css">
+        <title>Project 3</title>
+    </head>
+    <body>
+<!-- The nav bar container -->
+        <div class="nav-backing">
+            <div class="nav">
+                <!-- Links for pages -->
+                <a class="nav" href="index.html">Home</a>
+				<a class="nav" href="editor.html">Editor</a>
+                <a class="nav" href="about.html">About</a>
+				<a class="nav" href="credits.html">Credits</a>
+            </div>
+        </div>
+<!-- The header container -->
+        <!-- <div class="header-backing">
+            <div class="header"></div>
+        </div> -->
+<!-- The main content container -->
+        <div class="content-backing">
+
+            <div class="info">
+                <h2>Controls:</h2>
+                <p>While the mouse is clicked on the viewport and held...</p>
+                <ul>
+                    <li>WASD to move the camera horzontally, Q/E for down/up.</li>
+                    <li>Drag the mouse in the direction you want the camera to turn.</li>
+                    <li>Hold either shift to make the camera travel 5x as fast.</li>
+                </ul>
+                <p>The frame can be resized by dragging the anchor at the bottom right of the frame or by selecting a preset resolution from the drop-down.</p>
+            </div>
+
+        <!-- The editor; this should be centered and occupy the main part of the page -->
+            <div id="editor">
+            <!-- The frame and canvas -->
+                <div id="frame">
+                    <canvas id="render" width="640" height="480"></canvas>
+                </div>
+            <!-- Editor options: maybe put on the right? -->
+                <div id="options">
+                    <form id="basic" style="margin:10px">
+                        <p style="margin-bottom:2px">Render Size: (<span id="fsize-display">640x480</span>)</p>
+                        <select id="fixed-fsize-select">
+                            <option value="640_480">640x480 (480p)</option>
+                            <option value="960_540">960x540 (1/2x1080p)</option>
+                            <option value="1280_720">1280x720 (720p)</option>
+                            <option value="1920_1080">1920x1080 (1080p)</option>
+                            <option value="2160_1440">2160x1440 (1440p)</option>
+                            <option value="3840_2160">4K (Beefy GPU territory)</option>
+                            <option value="Custom">Custom (Placeholder)</option>
+                        </select><button type="button" onclick="canvas.requestFullscreen()">Fullscreen</button>
+						
+						<p style="margin-bottom:2px">Render Downscale: (1 = none)</p>
+						<input id="downscale" type="number" value="1" style="width:120px">
+
+                        <p style="margin-bottom:2px">Camera FOV:</p>
+                        <input id="cam-fov" type="number" value="60" min="1" max="180" style="width:120px">
+                        <!-- <input id="cam-nearclip" type="number" value="0.1" style="width:80px">
+                        <input id="cam-farclip" type="number" value="100" min="0.1" style="width:80px"> -->
+                        
+                        <p style="margin-bottom:2px">Samples Per Pixel [Per Frame]:</p>
+                        <input id="samples-ppx" type="number" value="1" min="1" max="1000" style="width:120px">
+                        
+                        <p style="margin-bottom:2px">Accumulation Limit: (Completed: <span id="total-samples-display">0</span>)</p>
+                        <input id="samples-limit" type="number" value="10000" min="1" max="1000000" style="width:120px">
+
+                        <p style="margin-bottom:2px">Bounce Limit:</p>
+                        <input id="bounce-limit" type="number" value="5" min="1" max="100" style="width:120px">
+
+                        <p style="margin-bottom:2px">Sky Color:</p>
+                        <input id="sky-color" type="color" value="#0C0C0C">
+                        <!-- <button id="reset-sky-color" type="button" onclick="" style="margin-left:2px">Reset</button> -->
+
+                        <p style="margin-bottom:2px">Simple Render</p>
+                        <input id="render-simple" type="checkbox" onclick="ui.scene.onRenderChange(this.checked)">
+                    </form>
+                </div>
+            </div>
+
+            <div class="info">
+                <h2>Notes/Tips:</h2>
+                <ul>
+                    <li>When holding a key down and dis/re-selecting the canvas with a mouse, those inputs will not be available until also released and re-pressed (usually not a big deal).</li>
+                    <li>Accidentally highlighting text when dragging the camera around can cause funky movement behavior (try fullscreen mode for large camera movements).</li>
+                    <li>Lower resolutions and samples/pixel/frame will result in better framerate, but in the case of the latter, longer convergence time.</li>
+                    <li>When simply waiting for a render to finish (not modifying the camera) there is no reason not to crank the samples per frame in order for the computation to run as fast as possible.</li>
+                    <li>Scenes with higher contrasts in lighting or relatively small light sources that are very bright will need much more samples to converge.</li>
+                </ul>
+            </div>
+
+        </div>
+<!-- The footer container -->
+        <div class="footer-backing">
+            <div class="footer">
+                <p>&copy Sam Richter 2022</p>
+                <span>|</span>
+                <a href="https://github.com/S2ink/Web-Project3" target="_blank">Github Source</a>
+            </div>
+        </div>
+<!-- js scripts -->
+        <script defer src="gl-matrix/dist/gl-matrix.js"></script>
+        <script defer src="math.js"></script>
+        <script defer src="scene.js"></script>
+        <script defer src="render.js"></script>
+        <script defer src="app.js"></script>
+    </body>
+</html>
