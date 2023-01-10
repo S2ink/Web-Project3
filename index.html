@@ -8,22 +8,65 @@
         <link rel="stylesheet" href="style.css">
         <title>Web Ray Tracing!</title>
     </head>
+	<style>
+		.home-backing {
+			background-image: url('BallsRender.png');
+			background-repeat: no-repeat;
+			background-attachment: fixed;
+			background-size: cover;
+			background-position: center center;
+			flex: 1;
+		}
+		.home-statement {
+			width: fit-content;
+			margin: auto;
+		}
+		.statement {
+			color: rgba(204,248,191,1.00);
+			font-size: clamp(30px, 10vw, 150px);
+		}
+		.overlay {
+			position: absolute;
+		}
+		#webgl-home {
+			width: 15vw;
+		}
+	</style>
     <body>
+		
+		<div class="home-backing">
+			<div class="overlay">
+				Made using 
+				<img src="WebGL_Logo.svg.png" id="webgl-home">
+			</div>
+			<div class="home-statement">
+				<h1 class="statement">
+					Ray Tracing.
+				</h1>
+				<h3 class="statement">
+					Plain and Simple.
+				</h3>
+			</div>
+		</div>
+		
 <!-- The nav bar container -->
+<!--
         <div class="nav-backing">
             <div class="nav">
-                <!-- Links for pages -->
+                 Links for pages 
                 <a class="nav" href="index.html">Home</a>
 				<a class="nav" href="editor.html">Editor</a>
                 <a class="nav" href="about.html">About</a>
 				<a class="nav" href="credits.html">Credits</a>
             </div>
         </div>
+-->
 <!-- The header container -->
         <!-- <div class="header-backing">
             <div class="header"></div>
         </div> -->
 <!-- The main content container -->
+<!--
         <div class="content-backing">
 
 			<div class="info">
@@ -33,7 +76,9 @@
 			</div>
 
         </div>
+-->
 <!-- The footer container -->
+<!--
         <div class="footer-backing">
             <div class="footer">
                 <p>&copy 2023 Sam Richter</p>
@@ -41,6 +86,7 @@
                 <a href="https://github.com/S2ink/Web-Project3" target="_blank">Github Source</a>
             </div>
         </div>
+-->
 <!-- js scripts -->
 <!--
         <script defer src="gl-matrix/dist/gl-matrix.js"></script>
