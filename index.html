@@ -4,34 +4,20 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="icon" href="resources/ray-sphere-icon.png" type="image/png" sizes="16x16">
+        
+		<link rel="icon" href="resources/ray-sphere-icon.png" type="image/png" sizes="16x16">
+		
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Carter+One&family=DM+Sans:ital,wght@0,400;1,700&family=Staatliches&display=swap" rel="stylesheet">		<link rel="stylesheet" href="style.css">
-        <title>Web Ray Tracing!</title>
+		<link rel="stylesheet" href="theme.css">
+        
+		<title>Web Ray Tracing!</title>
     </head>
 	<style>
 		body {
 			display: block;
 		}
-		.audiowide {
-			font-family: 'Audiowide', sans-serif;
-		}
-		.carterone {
-			font-family: 'Carter One', sans-serif;
-		}
-		.staatliches {
-			font-family: 'Staatliches', sans-serif;
-		}
-		.dmsans {
-			font-family: 'DM Sans', sans-serif;
-		}
-		.dmsans7i {
-			font-family: 'DM Sans', sans-serif;
-			font-weight: 700;
-			font-style: italic;
-		}
-		.home-backing {
+		#backing {
 			background: linear-gradient( rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35) ), url('resources/rt-4k.png');
 			background-repeat: no-repeat;
 			background-attachment: fixed;
@@ -40,68 +26,84 @@
 			flex: 1;
 			height: 100vh;
 		}
-		.home-statement {
+		#header {
 			width: fit-content;
 			margin: auto;
-			color: rgb(197, 197, 197);
+			color: var(--theme-light);
 			text-align: center;
 			position: absolute;
 			transform: translate(-50%, -50%);
 			top: 50%;
 			left: 50%;
 		}
-		.home-statement h1, h3, h5, h6 {
+		#header h1, h3, h5, h6 {
 			margin: 0px;
 		}
-		.home-statement h1 {
+		#header h1 {
 			font-size: clamp(30px, 10vw, 140px);
 		}
-		.home-statement h3 {
+		#header h3 {
 			font-size: clamp(20px, 6.6vw, 100px);
 		}
-		.home-statement h5 {
+		#header h5 {
 			font-size: clamp(10px, 3.3vw, 50px);
 		}
-		.home-statement h6 {
+		#header h6 {
 			font-size: clamp(8px, 2vw, 36px);
 		}
-		.overlay {
-			position: absolute;
-		}
 		#webgl-logo {
+			height: clamp(36px, 5vw, 84px);
 			position: absolute;
-			text-align: center;
-			color: rgb(197, 197, 197);
-			font-weight: bold;
-			font-size: clamp(16px, 3vw, 40px);
 			margin: 1vw 1.5vw;
 		}
-		#webgl-logo img {
-			height: clamp(36px, 5vw, 84px);
-		}
-		#nav {
-			position: sticky;
-			top: 0;
-			width: 100%;
-			height: calc(clamp(30px, 4vw, 50px) + 4vw);
-		}
-		#nav img {
-			float: right;
-			height: clamp(30px, 4vw, 50px);
-			margin: 2vw;
-/*			https://codepen.io/sosuke/pen/Pjoqqp */
-			/* filter: invert(84%) sepia(23%) saturate(7013%) hue-rotate(205deg) brightness(111%) contrast(101%); */
-			filter: invert(86%) sepia(0%) saturate(0%) hue-rotate(234deg) brightness(90%) contrast(101%);
-		}
-		#nav img:hover {
-			filter: invert(100%) sepia(0%) saturate(7491%) hue-rotate(274deg) brightness(109%) contrast(102%);
-		}
 		#footer {
-			background-color: rgb(63, 63, 63);
+			background-color: var(--theme-dark);
 			height: fit-content;
 			margin: 0;
 		}
 	</style>
+    <body>
+		
+		<div id="backing">
+			<img src="resources/made-using-webgl.svg" id="webgl-logo">
+			<div id="nav">
+				<!-- These are defined in opposite order (r->l) because they are floated to the right -->
+				<a href="about.html"><img src="resources/circle-info-solid.svg"></a>
+				<a href="editor.html"><img src="resources/pen-to-square-regular.svg"></a>
+				<a href="index.html"><img src="resources/house-solid.svg"></a>
+			</div>
+			<div id="header">
+				<h1 class="styled_font">
+					Ray Tracing.
+				</h1>
+				<h6 class="basic_font">
+					Right in your web browser.
+				</h6>
+				<div class="wrapper">
+					<a class="cta" href="editor.html">
+					  <span>Try it Out!</span>
+					  <span>
+						<svg width="66px" height="43px" viewBox="0 0 66 43" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+						  <g id="arrow" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+							<path class="one" d="M40.1543933,3.89485454 L43.9763149,0.139296592 C44.1708311,-0.0518420739 44.4826329,-0.0518571125 44.6771675,0.139262789 L65.6916134,20.7848311 C66.0855801,21.1718824 66.0911863,21.8050225 65.704135,22.1989893 C65.7000188,22.2031791 65.6958657,22.2073326 65.6916762,22.2114492 L44.677098,42.8607841 C44.4825957,43.0519059 44.1708242,43.0519358 43.9762853,42.8608513 L40.1545186,39.1069479 C39.9575152,38.9134427 39.9546793,38.5968729 40.1481845,38.3998695 C40.1502893,38.3977268 40.1524132,38.395603 40.1545562,38.3934985 L56.9937789,21.8567812 C57.1908028,21.6632968 57.193672,21.3467273 57.0001876,21.1497035 C56.9980647,21.1475418 56.9959223,21.1453995 56.9937605,21.1432767 L40.1545208,4.60825197 C39.9574869,4.41477773 39.9546013,4.09820839 40.1480756,3.90117456 C40.1501626,3.89904911 40.1522686,3.89694235 40.1543933,3.89485454 Z" fill="#C5C5C5"></path>
+							<path class="two" d="M20.1543933,3.89485454 L23.9763149,0.139296592 C24.1708311,-0.0518420739 24.4826329,-0.0518571125 24.6771675,0.139262789 L45.6916134,20.7848311 C46.0855801,21.1718824 46.0911863,21.8050225 45.704135,22.1989893 C45.7000188,22.2031791 45.6958657,22.2073326 45.6916762,22.2114492 L24.677098,42.8607841 C24.4825957,43.0519059 24.1708242,43.0519358 23.9762853,42.8608513 L20.1545186,39.1069479 C19.9575152,38.9134427 19.9546793,38.5968729 20.1481845,38.3998695 C20.1502893,38.3977268 20.1524132,38.395603 20.1545562,38.3934985 L36.9937789,21.8567812 C37.1908028,21.6632968 37.193672,21.3467273 37.0001876,21.1497035 C36.9980647,21.1475418 36.9959223,21.1453995 36.9937605,21.1432767 L20.1545208,4.60825197 C19.9574869,4.41477773 19.9546013,4.09820839 20.1480756,3.90117456 C20.1501626,3.89904911 20.1522686,3.89694235 20.1543933,3.89485454 Z" fill="#C5C5C5"></path>
+							<path class="three" d="M0.154393339,3.89485454 L3.97631488,0.139296592 C4.17083111,-0.0518420739 4.48263286,-0.0518571125 4.67716753,0.139262789 L25.6916134,20.7848311 C26.0855801,21.1718824 26.0911863,21.8050225 25.704135,22.1989893 C25.7000188,22.2031791 25.6958657,22.2073326 25.6916762,22.2114492 L4.67709797,42.8607841 C4.48259567,43.0519059 4.17082418,43.0519358 3.97628526,42.8608513 L0.154518591,39.1069479 C-0.0424848215,38.9134427 -0.0453206733,38.5968729 0.148184538,38.3998695 C0.150289256,38.3977268 0.152413239,38.395603 0.154556228,38.3934985 L16.9937789,21.8567812 C17.1908028,21.6632968 17.193672,21.3467273 17.0001876,21.1497035 C16.9980647,21.1475418 16.9959223,21.1453995 16.9937605,21.1432767 L0.15452076,4.60825197 C-0.0425130651,4.41477773 -0.0453986756,4.09820839 0.148075568,3.90117456 C0.150162624,3.89904911 0.152268631,3.89694235 0.154393339,3.89485454 Z" fill="#C5C5C5"></path>
+						  </g>
+						</svg>
+					  </span> 
+					</a>
+				  </div>
+			</div>
+		</div>
+		<div id="footer">
+			<h1 class="styled_font" style="padding:3vw; margin:0; color: rgb(197, 197, 197);">
+				&copy 2023 Sam Richter | 
+				<a href="https://github.com/S2ink/Web-Project3" target="_blank">
+					<img src="resources/github.svg" style="height:2vw; filter: invert(86%) sepia(0%) saturate(0%) hue-rotate(234deg) brightness(90%) contrast(101%);"></a>
+			</h1>
+		</div>
+
+	</body>
 	<style>
 		@import url('https://fonts.googleapis.com/css?family=Poppins:900i');
 
@@ -129,7 +131,7 @@
 			font-family: 'Poppins', sans-serif;
 			font-size: 40px;
 			color: rgb(197, 197, 197);
-			background: rgb(63, 63, 63);
+			background: #3F3F3F;
 			transition: 1s;
 			box-shadow: 6px 6px 0 black;
 			transform: skewX(-15deg);
@@ -143,6 +145,7 @@
 			transition: 0.5s;
 			/* box-shadow: 10px 10px 0 #FBC638; */
 			box-shadow: 10px 10px 0 white;
+			color: white;
 		}
 
 		.cta span:nth-child(2) {
@@ -207,94 +210,4 @@
 			}
 		}
 	</style>
-    <body>
-		
-		<div class="home-backing">
-			<div id="webgl-logo">
-				<img src="resources/made-using-webgl.svg">
-			</div>
-			<div id="nav">
-				<!-- These are defined in opposite order (r->l) because they are floated to the right -->
-				<a href="about.html"><img src="resources/circle-info-solid.svg"></a>
-				<a href="editor.html"><img src="resources/pen-to-square-regular.svg"></a>
-				<a href="index.html"><img src="resources/house-solid.svg"></a>
-			</div>
-			<div class="home-statement">
-				<h1 class="audiowide">
-					Ray Tracing.
-				</h1>
-				<h6 class="dmsans">
-					Right in your web browser.
-				</h6>
-				<div class="wrapper">
-					<a class="cta" href="editor.html">
-					  <span>Try it Out!</span>
-					  <span>
-						<svg width="66px" height="43px" viewBox="0 0 66 43" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-						  <g id="arrow" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-							<path class="one" d="M40.1543933,3.89485454 L43.9763149,0.139296592 C44.1708311,-0.0518420739 44.4826329,-0.0518571125 44.6771675,0.139262789 L65.6916134,20.7848311 C66.0855801,21.1718824 66.0911863,21.8050225 65.704135,22.1989893 C65.7000188,22.2031791 65.6958657,22.2073326 65.6916762,22.2114492 L44.677098,42.8607841 C44.4825957,43.0519059 44.1708242,43.0519358 43.9762853,42.8608513 L40.1545186,39.1069479 C39.9575152,38.9134427 39.9546793,38.5968729 40.1481845,38.3998695 C40.1502893,38.3977268 40.1524132,38.395603 40.1545562,38.3934985 L56.9937789,21.8567812 C57.1908028,21.6632968 57.193672,21.3467273 57.0001876,21.1497035 C56.9980647,21.1475418 56.9959223,21.1453995 56.9937605,21.1432767 L40.1545208,4.60825197 C39.9574869,4.41477773 39.9546013,4.09820839 40.1480756,3.90117456 C40.1501626,3.89904911 40.1522686,3.89694235 40.1543933,3.89485454 Z" fill="#C5C5C5"></path>
-							<path class="two" d="M20.1543933,3.89485454 L23.9763149,0.139296592 C24.1708311,-0.0518420739 24.4826329,-0.0518571125 24.6771675,0.139262789 L45.6916134,20.7848311 C46.0855801,21.1718824 46.0911863,21.8050225 45.704135,22.1989893 C45.7000188,22.2031791 45.6958657,22.2073326 45.6916762,22.2114492 L24.677098,42.8607841 C24.4825957,43.0519059 24.1708242,43.0519358 23.9762853,42.8608513 L20.1545186,39.1069479 C19.9575152,38.9134427 19.9546793,38.5968729 20.1481845,38.3998695 C20.1502893,38.3977268 20.1524132,38.395603 20.1545562,38.3934985 L36.9937789,21.8567812 C37.1908028,21.6632968 37.193672,21.3467273 37.0001876,21.1497035 C36.9980647,21.1475418 36.9959223,21.1453995 36.9937605,21.1432767 L20.1545208,4.60825197 C19.9574869,4.41477773 19.9546013,4.09820839 20.1480756,3.90117456 C20.1501626,3.89904911 20.1522686,3.89694235 20.1543933,3.89485454 Z" fill="#C5C5C5"></path>
-							<path class="three" d="M0.154393339,3.89485454 L3.97631488,0.139296592 C4.17083111,-0.0518420739 4.48263286,-0.0518571125 4.67716753,0.139262789 L25.6916134,20.7848311 C26.0855801,21.1718824 26.0911863,21.8050225 25.704135,22.1989893 C25.7000188,22.2031791 25.6958657,22.2073326 25.6916762,22.2114492 L4.67709797,42.8607841 C4.48259567,43.0519059 4.17082418,43.0519358 3.97628526,42.8608513 L0.154518591,39.1069479 C-0.0424848215,38.9134427 -0.0453206733,38.5968729 0.148184538,38.3998695 C0.150289256,38.3977268 0.152413239,38.395603 0.154556228,38.3934985 L16.9937789,21.8567812 C17.1908028,21.6632968 17.193672,21.3467273 17.0001876,21.1497035 C16.9980647,21.1475418 16.9959223,21.1453995 16.9937605,21.1432767 L0.15452076,4.60825197 C-0.0425130651,4.41477773 -0.0453986756,4.09820839 0.148075568,3.90117456 C0.150162624,3.89904911 0.152268631,3.89694235 0.154393339,3.89485454 Z" fill="#C5C5C5"></path>
-						  </g>
-						</svg>
-					  </span> 
-					</a>
-				  </div>
-			</div>
-		</div>
-		<div id="footer">
-			<h1 class="audiowide" style="padding:3vw; margin:0; color: rgb(197, 197, 197);">
-				&copy 2023 Sam Richter | 
-				<a href="https://github.com/S2ink/Web-Project3" target="_blank">
-					<img src="resources/github.svg" style="height:2vw; filter: invert(86%) sepia(0%) saturate(0%) hue-rotate(234deg) brightness(90%) contrast(101%);"></a>
-			</h1>
-		</div>
-		
-<!-- The nav bar container -->
-<!--
-        <div class="nav-backing">
-            <div class="nav">
-                 Links for pages 
-                <a class="nav" href="index.html">Home</a>
-				<a class="nav" href="editor.html">Editor</a>
-                <a class="nav" href="about.html">About</a>
-				<a class="nav" href="credits.html">Credits</a>
-            </div>
-        </div>
--->
-<!-- The header container -->
-        <!-- <div class="header-backing">
-            <div class="header"></div>
-        </div> -->
-<!-- The main content container -->
-<!--
-        <div class="content-backing">
-
-			<div class="info">
-				<h6>[Interactive]</h6>
-            	<h1>Ray Tracing!</h1>
-				<h3>From the comfort of your web browser!</h3>
-			</div>
-
-        </div>
--->
-<!-- The footer container -->
-<!--
-        <div class="footer-backing">
-            <div class="footer">
-                <p>&copy 2023 Sam Richter</p>
-                <span>|</span>
-                <a href="https://github.com/S2ink/Web-Project3" target="_blank">Github Source</a>
-            </div>
-        </div>
--->
-<!-- js scripts -->
-<!--
-        <script defer src="gl-matrix/dist/gl-matrix.js"></script>
-        <script defer src="math.js"></script>
-        <script defer src="scene.js"></script>
-        <script defer src="render.js"></script>
-        <script defer src="app.js"></script>
--->
-    </body>
 </html>
