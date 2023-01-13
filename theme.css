@@ -2,7 +2,7 @@
 
 :root {
 	--theme-light: #C5C5C5;	/* 197, 197, 197 */
-	--theme-dark: #3F3F3F; /* 63, 63, 63 */
+	--theme-dark: #3F3F3F;		/* 63, 63, 63 */
 	--theme-lightest: white;
 	--theme-darkest: black;
 	
@@ -54,6 +54,27 @@ body {
 .basic_font { font-family: var(--font-basic); }
 .expression_font { font-family: var(--font-expression); }
 
+h1.scale_width {
+	font-size: clamp(30px, 10vw, 140px);
+}
+h2.scale_width {
+
+}
+h3.scale_width {
+	font-size: clamp(20px, 6.6vw, 100px);
+}
+h4.scale_width {
+
+}
+h5.scale_width {
+	font-size: clamp(10px, 3.3vw, 50px);
+}
+h6.scale_width {
+	font-size: clamp(8px, 2vw, 36px);
+}
+p.scale_width, span.scale_width, li.scale_width {
+
+}
 
 
 
@@ -66,7 +87,6 @@ body {
 *   Basic    *
 * * * * * * */
 body {
-    margin: 0;
     height: 100%;
     display: flex;
     flex-direction: column;
