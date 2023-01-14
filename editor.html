@@ -18,17 +18,31 @@
 			display: block;
 		}
 		#content {
-			background: var(--theme-darkest);
+			background: var(--theme-dark);
 			display: flex;
 			flex-direction: column;
 			min-height: 100vh;
 		}
+        #nav {
+            background: var(--theme-dark2);
+        }
 		#editor {
 /*			margin-left: clamp(10px, 5vw, 60px);*/
 			margin: 0 auto;
 			width: fit-content;
 			height: fit-content;
 		}
+        #frame {
+            float: left;
+            resize: both;
+            overflow: scroll;
+            width: fit-content;
+            height: fit-content;
+            border: 2px solid var(--theme-darkest);
+        }
+        #render, #options {
+            float: left;
+        }
 	</style>
     <body>
 		<div id="content">
