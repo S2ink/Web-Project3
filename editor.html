@@ -4,26 +4,136 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="icon" href="resources/ray-sphere-icon.png" type="image/png" sizes="16x16">
-        <link rel="stylesheet" href="theme.css">
+        
+		<link rel="icon" href="resources/ray-sphere-icon.png" type="image/png" sizes="16x16">
+        
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link rel="stylesheet" href="theme.css">
+		
         <title>RT Editor</title>
     </head>
+	<style>
+		#content {
+			background: var(--theme-dark);
+			display: flex;
+			flex-direction: column;
+			min-height: 100vh;
+		}
+        #nav {
+            background: var(--theme-dark2);
+        }
+		#editor {
+/*			margin-left: clamp(10px, 5vw, 60px);*/
+			margin: 10px auto;
+			width: fit-content;
+			height: fit-content;
+		}
+        #frame {
+            float: left;
+            resize: both;
+            overflow: scroll;
+            width: fit-content;
+            height: fit-content;
+            border: 2px solid var(--theme-darkest);
+        }
+        #render, #options {
+            float: left;
+        }
+        #options {
+            margin: 10px;
+        }
+        #options span {
+            display: inline-block;
+            margin-top: 16px;
+            margin-bottom: 2px;
+            color: var(--theme-light);
+            font-weight: bold;
+        }
+        #options span span {
+            margin: 0;
+        }
+	</style>
     <body>
+		<div id="content">
+			<div id="nav">
+				<a href="about.html"><img src="resources/circle-info-solid.svg"></a>
+				<a href="editor.html"><img src="resources/pen-to-square-regular.svg"></a>
+				<a href="index.html"><img src="resources/house-solid.svg"></a>
+			</div>
+
+		<!-- The editor; this should be centered and occupy the main part of the page -->
+            <div id="editor">
+            <!-- The frame and canvas -->
+                <div id="frame">
+                    <canvas id="render" width="640" height="480"></canvas>
+                </div>
+            <!-- Editor options: maybe put on the right? -->
+                <div id="options">
+                    <form>
+                        <span style="margin-top:0">Render Size: (<span id="fsize-display">640x480</span>)</span><br>
+                        <select id="fixed-fsize-select">
+                            <option value="640_480">640x480 (480p)</option>
+                            <option value="960_540">960x540 (1/2x1080p)</option>
+                            <option value="1280_720">1280x720 (720p)</option>
+                            <option value="1920_1080">1920x1080 (1080p)</option>
+                            <option value="2160_1440">2160x1440 (1440p)</option>
+                            <option value="3840_2160">4K (Beefy GPU territory)</option>
+                            <option value="Custom">Custom (Placeholder)</option>
+                        </select><button type="button" onclick="canvas.requestFullscreen()">Fullscreen</button><br>
+						
+						<span>Render Downscale: (1 = none)</span><br>
+						<input id="downscale" type="number" value="1" style="width:120px"><br>
+
+                        <span>Camera FOV:</span><br>
+                        <input id="cam-fov" type="number" value="60" min="1" max="180" style="width:120px"><br>
+                        
+                        <span>Samples Per Pixel [Per Frame]:</span><br>
+                        <input id="samples-ppx" type="number" value="1" min="1" max="1000" style="width:120px"><br>
+                        
+                        <span>Accumulation Limit: (Completed: <span id="total-samples-display">0</span>)</span><br>
+                        <input id="samples-limit" type="number" value="10000" min="1" max="1000000" style="width:120px"><br>
+
+                        <span>Bounce Limit:</span><br>
+                        <input id="bounce-limit" type="number" value="5" min="1" max="100" style="width:120px"><br>
+
+                        <span>Sky Color:</span>
+                        <input id="sky-color" type="color" value="#0C0C0C"><br>
+
+                        <span>Simple Render</span>
+                        <input id="render-simple" type="checkbox" onclick="ui.scene.onRenderChange(this.checked)">
+                    </form>
+                </div>
+            </div>
+
+		</div>
+		<div id="footer">
+			<h1 class="styled_font" style="padding:3vw; margin:0; color: var(--theme-light);">
+				&copy 2023 Sam Richter | 
+				<a href="https://github.com/S2ink/Web-Project3" target="_blank">
+					<img src="resources/github.svg" style="height:2vw; filter: invert(86%) sepia(0%) saturate(0%) hue-rotate(234deg) brightness(90%) contrast(101%);"></a>
+			</h1>
+		</div>
+		
+		
 <!-- The nav bar container -->
+<!--
         <div class="nav-backing">
             <div class="nav">
-                <!-- Links for pages -->
+                 Links for pages 
                 <a class="nav" href="index.html">Home</a>
 				<a class="nav" href="editor.html">Editor</a>
                 <a class="nav" href="about.html">About</a>
 				<a class="nav" href="credits.html">Credits</a>
             </div>
         </div>
+-->
 <!-- The header container -->
         <!-- <div class="header-backing">
             <div class="header"></div>
         </div> -->
 <!-- The main content container -->
+<!--
         <div class="content-backing">
 
             <div class="info">
@@ -37,52 +147,7 @@
                 <p>The frame can be resized by dragging the anchor at the bottom right of the frame or by selecting a preset resolution from the drop-down.</p>
             </div>
 
-        <!-- The editor; this should be centered and occupy the main part of the page -->
-            <div id="editor">
-            <!-- The frame and canvas -->
-                <div id="frame">
-                    <canvas id="render" width="640" height="480"></canvas>
-                </div>
-            <!-- Editor options: maybe put on the right? -->
-                <div id="options">
-                    <form id="basic" style="margin:10px">
-                        <p style="margin-bottom:2px">Render Size: (<span id="fsize-display">640x480</span>)</p>
-                        <select id="fixed-fsize-select">
-                            <option value="640_480">640x480 (480p)</option>
-                            <option value="960_540">960x540 (1/2x1080p)</option>
-                            <option value="1280_720">1280x720 (720p)</option>
-                            <option value="1920_1080">1920x1080 (1080p)</option>
-                            <option value="2160_1440">2160x1440 (1440p)</option>
-                            <option value="3840_2160">4K (Beefy GPU territory)</option>
-                            <option value="Custom">Custom (Placeholder)</option>
-                        </select><button type="button" onclick="canvas.requestFullscreen()">Fullscreen</button>
-						
-						<p style="margin-bottom:2px">Render Downscale: (1 = none)</p>
-						<input id="downscale" type="number" value="1" style="width:120px">
-
-                        <p style="margin-bottom:2px">Camera FOV:</p>
-                        <input id="cam-fov" type="number" value="60" min="1" max="180" style="width:120px">
-                        <!-- <input id="cam-nearclip" type="number" value="0.1" style="width:80px">
-                        <input id="cam-farclip" type="number" value="100" min="0.1" style="width:80px"> -->
-                        
-                        <p style="margin-bottom:2px">Samples Per Pixel [Per Frame]:</p>
-                        <input id="samples-ppx" type="number" value="1" min="1" max="1000" style="width:120px">
-                        
-                        <p style="margin-bottom:2px">Accumulation Limit: (Completed: <span id="total-samples-display">0</span>)</p>
-                        <input id="samples-limit" type="number" value="10000" min="1" max="1000000" style="width:120px">
-
-                        <p style="margin-bottom:2px">Bounce Limit:</p>
-                        <input id="bounce-limit" type="number" value="5" min="1" max="100" style="width:120px">
-
-                        <p style="margin-bottom:2px">Sky Color:</p>
-                        <input id="sky-color" type="color" value="#0C0C0C">
-                        <!-- <button id="reset-sky-color" type="button" onclick="" style="margin-left:2px">Reset</button> -->
-
-                        <p style="margin-bottom:2px">Simple Render</p>
-                        <input id="render-simple" type="checkbox" onclick="ui.scene.onRenderChange(this.checked)">
-                    </form>
-                </div>
-            </div>
+   
 
             <div class="info">
                 <h2>Notes/Tips:</h2>
@@ -96,7 +161,9 @@
             </div>
 
         </div>
+-->
 <!-- The footer container -->
+<!--
         <div class="footer-backing">
             <div class="footer">
                 <p>&copy 2023 Sam Richter</p>
@@ -104,6 +171,7 @@
                 <a href="https://github.com/S2ink/Web-Project3" target="_blank">Github Source</a>
             </div>
         </div>
+-->
 <!-- js scripts -->
         <script defer src="gl-matrix/dist/gl-matrix.js"></script>
         <script defer src="math.js"></script>
