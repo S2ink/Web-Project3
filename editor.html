@@ -40,6 +40,13 @@
         #render, #options {
             float: left;
         }
+		#overlay {
+			display: block;
+			padding: 5px;
+			position: absolute;
+			z-index: 1;
+			color: var(--theme-light);
+		}
         #options {
             margin: 10px;
         }
@@ -67,6 +74,10 @@
             <!-- The frame and canvas -->
                 <div id="frame">
                     <canvas id="render" style="image-rendering: pixelated" width="640" height="480"></canvas>
+					<div id="overlay">
+						<span id="fps-display">0</span><br>
+						<span id="total-samples-display">0</span>
+					</div>
                 </div>
             <!-- Editor options: maybe put on the right? -->
                 <div id="options">
@@ -91,7 +102,7 @@
                         <span>Samples Per Pixel [Per Frame]:</span><br>
                         <input id="samples-ppx" type="number" value="1" min="1" max="1000" style="width:120px"><br>
                         
-                        <span>Accumulation Limit: (Completed: <span id="total-samples-display">0</span>)</span><br>
+                        <span>Accumulation Limit:</span><br>
                         <input id="samples-limit" type="number" value="10000" min="1" max="1000000" style="width:120px"><br>
 
                         <span>Bounce Limit:</span><br>
@@ -101,7 +112,10 @@
                         <input id="sky-color" type="color" value="#0C0C0C"><br>
 
                         <span>Simple Render</span>
-                        <input id="render-simple" type="checkbox" onclick="ui.scene.onRenderChange(this.checked)">
+                        <input id="render-simple" type="checkbox" onclick="ui.scene.onRenderChange(this.checked)"><br>
+						
+						<span>[Add option here to disable overlay]</span>
+						<input id="enable-overlay" type="checkbox" onclick="">
                     </form>
                 </div>
             </div>

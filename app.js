@@ -96,6 +96,7 @@ const ui = {
 	elem_samples_limit : document.getElementById("samples-limit"),
 	elem_bounce_limit : document.getElementById("bounce-limit"),
 	elem_sky_color : document.getElementById("sky-color"),
+	elem_fps_display: document.getElementById("fps-display"),
 	// elem_reset_sky : document.getElementById("reset-sky-color"),
 
 	keys : {
@@ -410,6 +411,8 @@ function renderTick(timestamp) {
 		accumulater.renderTextureToFrame(gl_render);
 	}
 	ui.elem_samples_display.innerHTML = accumulater.samples;
+	let fps = 1000 / dt;
+	ui.elem_fps_display.innerHTML = fps.toFixed(2) + " fps";
 
 	window.requestAnimationFrame(renderTick);
 }
