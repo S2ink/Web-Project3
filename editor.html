@@ -66,7 +66,7 @@
             <div id="editor">
             <!-- The frame and canvas -->
                 <div id="frame">
-                    <canvas id="render" width="640" height="480"></canvas>
+                    <canvas id="render" style="image-rendering: pixelated" width="640" height="480"></canvas>
                 </div>
             <!-- Editor options: maybe put on the right? -->
                 <div id="options">
@@ -173,10 +173,10 @@
         </div>
 -->
 <!-- js scripts -->
-        <script defer src="gl-matrix/dist/gl-matrix.js"></script>
+        <script defer src="gl-matrix/dist/gl-matrix-min.js"></script>
         <script defer src="math.js"></script>
-        <script defer src="scene.js"></script>
         <script defer src="render.js"></script>
+        <script defer src="scene.js"></script>
         <script defer src="app.js"></script>
     </body>
 </html>

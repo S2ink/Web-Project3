@@ -64,6 +64,13 @@ function listActiveUniforms(gl, program) {
 	}
 }
 
+function bindTextureUnit(gl, program, unit, uniform) {
+	gl.uniform1i(
+		gl.getUniformLocation(program, uniform),
+		unit
+	);
+}
+
 
 
 const fb_vertex_src = `#version 300 es
@@ -89,6 +96,7 @@ uniform float total_samples;
 out vec4 fragColor;
 void main() {
 	fragColor = vec4(sqrt(texture(framebuff, fragCoord).rgb / total_samples), 1.0);
+	// fragColor = vec4(texture(framebuff, fragCoord).rgb / total_samples, 1.0);
 }
 `;
 
@@ -106,53 +114,129 @@ const fragment_src = `#version 300 es
 	precision mediump float;
 #endif
 
-#define SPHERE_ARRAY_LEN 32		// len for each interactable type... (set by scene)
-#define TRIANGLE_ARRAY_LEN 32
-//#define MATERIALS_ARRAY_LEN 64	// set by scene - if we want to save memory by compacting reused materials
-//#define TEXTURES_ARRAY_LEN 64		// set by scene - if we ever add dynamic texturing
 
 #define EPSILON 0.00001		// 1e-5
 #define PI 3.14159265358979
 #define PI2 6.283185307179586
 #define PHI 1.61803398874989484820459
 
+uniform sampler2D acc_frame;
+uniform mat4 iview, iproj;
+uniform vec3 cam_pos;
+uniform vec2 fsize;
+uniform float realtime;
+uniform int samples;
+uniform int bounces;
+uniform int simple;
+
+
+#define SPHERE_FLOATS 5
+#define TRIANGLE_FLOATS 10
+#define SURFACE_FLOATS 5
+#define MATERIAL_FLOATS 4
+
+struct Sphere {
+	vec3 center;
+	float radius;
+	int _surface;
+};
+struct Triangle {
+	vec3 a, b, c;
+	int _surface;
+};
+
+struct Surface {
+	float luminance;
+	vec3 albedo;
+	int _material;
+};
 struct Material {
 	float roughness;
 	float glossiness;
 	float transparency;
 	float refraction_index;
 };
-struct Surface {
-	float luminance;
-	vec3 albedo;
-	Material mat;
-};
-
-struct Sphere {
-	vec3 center;
-	float radius;
-	Surface surface;
-};
-struct Triangle {
-	vec3 a, b, c;
-	Surface surface;
-};
-
-uniform sampler2D acc_frame;
-uniform mat4 iview, iproj;
-uniform vec3 cam_pos;
-uniform vec2 fsize;
-uniform float realtime;
-uniform float samples;
-uniform float bounces;
-uniform float simple;
 
 uniform vec3 skycolor;
-uniform Sphere spheres[SPHERE_ARRAY_LEN];
-uniform Triangle triangles[TRIANGLE_ARRAY_LEN];
-uniform float sphere_count;
-uniform float triangle_count;
+uniform sampler2D sphere_data;
+uniform sampler2D triangle_data;
+uniform sampler2D surface_data;
+uniform sampler2D material_data;
+// uniform int spheres_count;
+// uniform int triangles_count;
+// uniform int surfaces_count;
+// uniform int materials_count;
 // uniform float selected
+
+float sample1d(in sampler2D smp, in int beg) {
+	return texelFetch(smp, ivec2(beg, 0), 0).x;
+}
+vec3 sample1d_v3(in sampler2D smp, in int beg) {
+	return vec3(
+		texelFetch(smp, ivec2(beg, 0), 0).x,
+		texelFetch(smp, ivec2(beg + 1, 0), 0).x,
+		texelFetch(smp, ivec2(beg + 2, 0), 0).x
+	);
+}
+void sphere_at(in int num, out Sphere s) {
+	s.center = vec3(
+		texelFetch(sphere_data, ivec2(0, num), 0).x,
+		texelFetch(sphere_data, ivec2(1, num), 0).x,
+		texelFetch(sphere_data, ivec2(2, num), 0).x);
+	s.radius =
+		texelFetch(sphere_data, ivec2(3, num), 0).x;
+	s._surface = int(
+		texelFetch(sphere_data, ivec2(4, num), 0).x);
+}
+void triangle_at(in int num, out Triangle t) {
+	t.a = vec3(
+		texelFetch(triangle_data, ivec2(0, num), 0).x,
+		texelFetch(triangle_data, ivec2(1, num), 0).x,
+		texelFetch(triangle_data, ivec2(2, num), 0).x);
+	t.b = vec3(
+		texelFetch(triangle_data, ivec2(3, num), 0).x,
+		texelFetch(triangle_data, ivec2(4, num), 0).x,
+		texelFetch(triangle_data, ivec2(5, num), 0).x);
+	t.c = vec3(
+		texelFetch(triangle_data, ivec2(6, num), 0).x,
+		texelFetch(triangle_data, ivec2(7, num), 0).x,
+		texelFetch(triangle_data, ivec2(8, num), 0).x);
+	t._surface = int(
+		texelFetch(triangle_data, ivec2(9, num), 0).x);
+}
+void surface_at(in int num, out Surface s) {
+	s.luminance =
+		texelFetch(surface_data, ivec2(0, num), 0).x;
+	s.albedo = vec3(
+		texelFetch(surface_data, ivec2(1, num), 0).x,
+		texelFetch(surface_data, ivec2(2, num), 0).x,
+		texelFetch(surface_data, ivec2(3, num), 0).x);
+	s._material = int(
+		texelFetch(surface_data, ivec2(4, num), 0).x);
+}
+void material_at(in int num, out Material m) {
+	m.roughness =
+		texelFetch(material_data, ivec2(0, num), 0).x;
+	m.glossiness =
+		texelFetch(material_data, ivec2(1, num), 0).x;
+	m.transparency =
+		texelFetch(material_data, ivec2(2, num), 0).x;
+	m.refraction_index =
+		texelFetch(material_data, ivec2(3, num), 0).x;
+}
+
+int sphere_count() {
+	return int(textureSize(sphere_data, 0).y);
+}
+int triangle_count() {
+	return int(textureSize(triangle_data, 0).y);
+}
+int surface_count() {
+	return int(textureSize(surface_data, 0).y);
+}
+int material_count() {
+	return int(textureSize(material_data, 0).y);
+}
 
 
 const vec3 _rc1_ = vec3(12.9898, 78.233, 151.7182);
@@ -359,20 +443,29 @@ vec3 getSourceRay(in vec2 proportional, in mat4 inv_proj, in mat4 inv_view) {
 vec3 evalRaySimple(in Ray ray) {
 	Hit hit;
 	float t_max = 10000000000000.;
-	vec3 alb = skycolor;
-	for(int i = 0; i < int(sphere_count); i++) {
-		if(interactsSphere(ray, spheres[i], hit, EPSILON, t_max)) {
+	int srf = -1;
+	Sphere s;
+	for(int i = 0; i < sphere_count(); i++) {
+		sphere_at(i, s);
+		if(interactsSphere(ray, s, hit, EPSILON, t_max)) {
 			t_max = hit.time;
-			alb = spheres[i].surface.albedo;
+			srf = s._surface;
 		}
 	}
-	for(int i = 0; i < int(triangle_count); i++) {
-		if(interactsTriangle(ray, triangles[i], hit, EPSILON, t_max)) {
+	Triangle t;
+	for(int i = 0; i < triangle_count(); i++) {
+		triangle_at(i, t);
+		if(interactsTriangle(ray, t, hit, EPSILON, t_max)) {
 			t_max = hit.time;
-			alb = triangles[i].surface.albedo;
+			srf = t._surface;
 		}
 	}
-	return alb;
+	if(srf >= 0) {
+		Surface _s;
+		surface_at(srf, _s);
+		return _s.albedo;
+	}
+	return skycolor;
 }
 vec3 evalRay(in Ray ray, in int bounces) {
 	vec3 total = vec3(0.0);
@@ -380,24 +473,27 @@ vec3 evalRay(in Ray ray, in int bounces) {
 	Ray current = ray;
 	for(int b = bounces; b >= 0; b--) {
 		Hit hit, tmp;
-		Surface srf;
+		int _srf = -1;
 		hit.time = 10000000000000.;
-		bool valid = false;
-		for(int i = 0; i < int(sphere_count); i++) {
-			if(interactsSphere(current, spheres[i], tmp, EPSILON, hit.time)) {
+		Sphere s;
+		for(int i = 0; i < sphere_count(); i++) {
+			sphere_at(i, s);
+			if(interactsSphere(current, s, tmp, EPSILON, hit.time)) {
 				hit = tmp;
-				srf = spheres[i].surface;
-				valid = true;
+				_srf = s._surface;
 			}
 		}
-		for(int i = 0; i < int(triangle_count); i++) {
-			if(interactsTriangle(current, triangles[i], tmp, EPSILON, hit.time)) {
+		Triangle t;
+		for(int i = 0; i < triangle_count(); i++) {
+			triangle_at(i, t);
+			if(interactsTriangle(current, t, tmp, EPSILON, hit.time)) {
 				hit = tmp;
-				srf = triangles[i].surface;
-				valid = true;
+				_srf = t._surface;
 			}
 		}
-		if(valid) {
+		if(_srf >= 0) {
+			Surface srf;
+			surface_at(_srf, srf);
 			float lum = srf.luminance;
 			vec3 clr = srf.albedo;
 			if(b == 0 || ((clr.x + clr.y + clr.z) / 3.0 * lum) >= 1.0) {
@@ -405,7 +501,9 @@ vec3 evalRay(in Ray ray, in int bounces) {
 				return total;
 			}
 			Ray redirect;
-			if(redirectRay(current, hit, srf.mat, redirect)) {
+			Material mat;
+			material_at(srf._material, mat);
+			if(redirectRay(current, hit, mat, redirect)) {
 				cache *= clr;
 				total += cache * lum;
 				current = redirect;
@@ -421,18 +519,18 @@ vec3 evalRay(in Ray ray, in int bounces) {
 out vec4 fragColor;
 void main() {
 	Ray src = Ray(cam_pos, vec3(0.0));
-	vec3 clr = texture(acc_frame, gl_FragCoord.xy / fsize).rgb;
-	if(simple == 1.0) {
-		for(int i = 0; i < int(samples); i++) {
+	vec3 clr = texelFetch(acc_frame, ivec2(gl_FragCoord.xy), 0).rgb;
+	if(simple > 0) {
+		for(int i = 0; i < samples; i++) {
 			float r = rand();
 			src.direction = getSourceRay((gl_FragCoord.xy + vec2(r)) / fsize, iproj, iview);
 			clr += evalRaySimple(src);
 		}
 	} else {
-		for(int i = 0; i < int(samples); i++) {
+		for(int i = 0; i < samples; i++) {
 			float r = rand();
 			src.direction = getSourceRay((vec2(gl_FragCoord) + vec2(r)) / fsize, iproj, iview);
-			clr += evalRay(src, int(bounces));
+			clr += evalRay(src, bounces);
 		}
 	}
 	fragColor = vec4(clr, 1.0);
