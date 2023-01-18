@@ -80,8 +80,8 @@ scene.addTriangles(
 );
 scene.update(gl);
 
-console.log(scene);
-listActiveUniforms(gl, gl_trace);
+// console.log(scene);
+// listActiveUniforms(gl, gl_trace);
 
 
 const ui = {
@@ -372,6 +372,8 @@ function renderTick(timestamp) {
 			canvas.width = width / ui.fsize.scale;
 			canvas.height = height / ui.fsize.scale;
 		} else {
+			// let extraw = frame.offsetWidth;
+			// console.log(extraw);
 			canvas.style.width = (width = ui.fsize._width) + 'px';
 			canvas.style.height = (height = ui.fsize._height) + 'px';
 			canvas.width = width / ui.fsize.scale;
@@ -384,6 +386,10 @@ function renderTick(timestamp) {
 				frame.style.height = 'fit-content';
 				ui.elem_fsize_selector.value = "Custom";
 			}
+			// let totalw = frame.offsetWidth, maxw = document.body.clientWidth;
+			// if(totalw > maxw) {
+			// 	console.log("oversize");
+			// }
 		}
 		ui.elem_fsize_display.innerHTML = width + 'x' + height;
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
