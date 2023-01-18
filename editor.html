@@ -38,9 +38,6 @@
             height: fit-content;
             border: 2px solid var(--theme-darkest);
         }
-        #render, #options {
-            float: left;
-        }
 		#overlay {
 			display: block;
 			padding: 5px;
@@ -54,19 +51,25 @@
                 #000 0 0 2px, #000 0 0 2px,
                 #000 0 0 2px, #000 0 0 2px;
 		}
-        #options {
-            margin: 10px;
+		#render, #render-options, #scene-options {
+            float: left;
         }
-        #options span {
+        #render-options, #scene-options {
+            margin: 10px;
+/*			background: rgba(47, 47, 47, 0.25);*/
+        }
+        #render-options span, #scene-options span {
             display: inline-block;
-            margin-top: 16px;
-            margin-bottom: 2px;
             color: var(--theme-light);
             font-weight: bold;
         }
-        #options span span {
+		#render-options span {
+			margin-top: 16px;
+            margin-bottom: 2px;
+		}
+        #render-options span span {
             margin: 0;
-        }
+		}
 		#controls, #notes {
 			clear: left;
 			padding: 10px;
@@ -92,8 +95,8 @@
 						<span id="total-samples-display">0</span>
 					</div>
                 </div>
-            <!-- Editor options: maybe put on the right? -->
-                <div id="options">
+            <!-- Render options: maybe put on the right? -->
+                <div id="render-options">
                     <form>
                         <span style="margin-top:0">Render Size: (<span id="fsize-display">640x480</span>)</span><br>
                         <select id="fixed-fsize-select">
@@ -131,6 +134,10 @@
 						<span>Enable Overlay</span>
                     </form>
                 </div>
+
+				<div id="scene-options" style="display:none;">
+					<span id="selected-object-display">Selected: none</span>
+				</div>
 
 				<details id="controls">
 					<summary>Controls</summary>

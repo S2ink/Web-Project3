@@ -86,6 +86,7 @@ scene.update(gl);
 
 const ui = {
 	elem_overlay_div : document.getElementById("overlay"),
+	elem_scene_options_div : document.getElementById("scene-options"),
 
 	elem_fsize_selector : document.getElementById("fixed-fsize-select"),
 	elem_fsize_display : document.getElementById("fsize-display"),
@@ -99,6 +100,7 @@ const ui = {
 	elem_bounce_limit : document.getElementById("bounce-limit"),
 	elem_sky_color : document.getElementById("sky-color"),
 	elem_fps_display: document.getElementById("fps-display"),
+	elem_selected_display: document.getElementById("selected-object-display"),
 	// elem_reset_sky : document.getElementById("reset-sky-color"),
 
 	keys : {
@@ -165,7 +167,8 @@ ui.onMouseDown = function(e) {
 		ray.direction = calcRayDirection(
 			prop, iproj_mat, iview_mat);
 		let sel = scene.trySelect(ray);
-		console.log(`Selected ${sel.type} [${sel.idx}]`);
+		ui.elem_selected_display.innerHTML = `Selected: ${sel.type} ${sel.idx}`;
+		ui.elem_scene_options_div.style.display = "inline-block";
 	} else {
 		ui.enable_camera = true;
 		vec2.copy(ui.mouse_xy2, vec2.set(
