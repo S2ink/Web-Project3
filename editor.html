@@ -21,10 +21,10 @@
 			min-height: 100vh;
 		}
         #nav {
+            z-index: 2;
             background: var(--theme-dark2);
         }
 		#editor {
-/*			margin-left: clamp(10px, 5vw, 60px);*/
 			margin: 10px auto;
 			width: fit-content;
 			height: fit-content;
@@ -45,7 +45,13 @@
 			padding: 5px;
 			position: absolute;
 			z-index: 1;
-			color: var(--theme-light);
+            font-weight: bold;
+			color: #FFF;
+            text-shadow:
+                #000 0 0 2px, #000 0 0 2px,
+                #000 0 0 2px, #000 0 0 2px,
+                #000 0 0 2px, #000 0 0 2px,
+                #000 0 0 2px, #000 0 0 2px;
 		}
         #options {
             margin: 10px;
@@ -60,6 +66,12 @@
         #options span span {
             margin: 0;
         }
+		#controls, #notes {
+			clear: left;
+			padding: 10px;
+			color: var(--theme-light);
+			font-weight: bold;
+		}
 	</style>
     <body>
 		<div id="content">
@@ -99,7 +111,7 @@
                         <span>Camera FOV:</span><br>
                         <input id="cam-fov" type="number" value="60" min="1" max="180" style="width:120px"><br>
                         
-                        <span>Samples Per Pixel [Per Frame]:</span><br>
+                        <span>Samples Per Frame:</span><br>
                         <input id="samples-ppx" type="number" value="1" min="1" max="1000" style="width:120px"><br>
                         
                         <span>Accumulation Limit:</span><br>
@@ -108,16 +120,38 @@
                         <span>Bounce Limit:</span><br>
                         <input id="bounce-limit" type="number" value="5" min="1" max="100" style="width:120px"><br>
 
-                        <span>Sky Color:</span>
-                        <input id="sky-color" type="color" value="#0C0C0C"><br>
+                        <input id="sky-color" type="color" value="#0C0C0C">
+						<span>Sky Color</span><br>
 
-                        <span>Simple Render</span>
-                        <input id="render-simple" type="checkbox" onclick="ui.scene.onRenderChange(this.checked)"><br>
+						<input id="render-simple" type="checkbox" onclick="ui.scene.onRenderChange(this.checked)">
+                        <span>Simple Render</span><br>
 						
-						<span>[Add option here to disable overlay]</span>
-						<input id="enable-overlay" type="checkbox" onclick="">
+						<input id="enable-overlay" type="checkbox" onclick="ui.onOverlayView(this.checked)" checked>
+						<span>Enable Overlay</span>
                     </form>
                 </div>
+
+				<details id="controls">
+					<summary>Controls</summary>
+					<p>While the mouse is clicked on the viewport and held...</p>
+					<ul>
+						<li>WASD to move the camera horzontally, Q/E for down/up.</li>
+						<li>Drag the mouse in the direction you want the camera to turn.</li>
+						<li>Hold either shift to make the camera travel 5x as fast.</li>
+						<li>Ctrl + click to "select" - not implemented other than in the console.</li>
+					</ul>
+					<p>The frame can be resized by dragging the anchor at the bottom right of the frame or by selecting a preset resolution from the drop-down.</p>
+				</details>
+				<details id="notes">
+					<summary>Notes/Tips</summary>
+					<ul>
+						<li>When holding a key down and dis/re-selecting the canvas with a mouse, those inputs will not be available until also released and re-pressed (usually not a big deal).</li>
+						<li>Accidentally highlighting text when dragging the camera around can cause funky movement behavior (try fullscreen mode for large camera movements).</li>
+						<li>Lower resolutions and samples/pixel/frame will result in better framerate, but in the case of the latter, longer convergence time.</li>
+						<li>When simply waiting for a render to finish (not modifying the camera) there is no reason not to crank the samples per frame in order for the computation to run as fast as possible.</li>
+						<li>Scenes with higher contrasts in lighting or relatively small light sources that are very bright will need much more samples to converge.</li>
+					</ul>
+				</details>
             </div>
 
 		</div>
