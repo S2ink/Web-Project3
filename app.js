@@ -85,6 +85,8 @@ listActiveUniforms(gl, gl_trace);
 
 
 const ui = {
+	elem_overlay_div : document.getElementById("overlay"),
+
 	elem_fsize_selector : document.getElementById("fixed-fsize-select"),
 	elem_fsize_display : document.getElementById("fsize-display"),
 	elem_downscale : document.getElementById("downscale"),
@@ -255,6 +257,13 @@ ui.scene.onSkyChange = function(e) {
 ui.scene.onRenderChange = function(val) {
 	this.simple_render = val;
 	this.updated = true;
+}
+ui.onOverlayView = function(val) {
+	if(val) {
+		ui.elem_overlay_div.style.display = "block";
+	} else {
+		ui.elem_overlay_div.style.display = "none";
+	}
 }
 
 canvas.addEventListener('mousedown', ui.onMouseDown);
