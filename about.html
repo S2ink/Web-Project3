@@ -4,28 +4,41 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+		
         <link rel="icon" href="resources/ray-sphere-icon.png" type="image/png" sizes="16x16">
-        <link rel="stylesheet" href="old-theme.css">
+        
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link rel="stylesheet" href="theme.css">
+		
         <title>About RT</title>
     </head>
-    <body>
-<!-- The nav bar container -->
-        <div class="nav-backing">
-            <div class="nav">
-                <!-- Links for pages -->
-                <a class="nav" href="index.html">Home</a>
-				<a class="nav" href="editor.html">Editor</a>
-                <a class="nav" href="about.html">About</a>
-				<a class="nav" href="credits.html">Credits</a>
-            </div>
-        </div>
-<!-- The header container -->
-        <!-- <div class="header-backing">
-            <div class="header"></div>
-        </div> -->
-<!-- The main content container -->
-        <div class="content-backing">
+	
+	<style>
+		#content {
+			background: var(--theme-dark);
+			display: flex;
+			flex-direction: column;
+			min-height: 100vh;
+		}
+        #nav {
+            background: var(--theme-dark2);
+        }
+		.info {
+			color: var(--theme-light);
+			margin: auto;
+			width: 90%;
+		}
+	</style>
 
+    <body>
+
+		<div id="content">
+			<div id="nav">
+				<a href="about.html"><img class="link-svg" src="resources/circle-info-solid.svg"></a>
+				<a href="editor.html"><img class="link-svg" src="resources/pen-to-square-regular.svg"></a>
+				<a href="index.html"><img class="link-svg" src="resources/house-solid.svg"></a>
+			</div>
 			<div class="info">
 				<b>
 				<p>Generally speaking, ray tracing is a "physically accurate" simulation of how light interacts with different surfaces and a camera. At the core of ray tracing are the rendering equation and all of the mathimatical equations that describe interactions like diffusion, reflection, and refraction.</p>
@@ -41,23 +54,24 @@
             <div class="info">
 				<p>I would really love to put a bunch of cool information here about how ray tracing works, its applications, and the math behind it, but I don't have much time so here is a <a href="https://en.wikipedia.org/wiki/Ray_tracing_(graphics)">wikipedia link</a>. Also check out the <a href="credits.html">credits page</a> for other resources.</p>
 			</div>
+		</div>
 
-        </div>
-<!-- The footer container -->
-        <div class="footer-backing">
-            <div class="footer">
-                <p>&copy 2023 Sam Richter</p>
-                <span>|</span>
-                <a href="https://github.com/S2ink/Web-Project3" target="_blank">Github Source</a>
-            </div>
-        </div>
-<!-- js scripts -->
-<!--
-        <script defer src="gl-matrix/dist/gl-matrix.js"></script>
-        <script defer src="math.js"></script>
-        <script defer src="scene.js"></script>
-        <script defer src="render.js"></script>
-        <script defer src="app.js"></script>
--->
+		<div id="footer">
+			<div>
+				<a href="index.html">Home</a>
+				<a href="editor.html">Editor</a>
+				<a href="about.html">About</a>
+				<a href="credits.html">Credits</a>
+				<a href="https://github.com/S2ink/Web-Project3" target="_blank">Source</a>
+				<hr>
+			</div>
+			<div style="margin-top:clamp(16px, 2vw, 30px)"><a href="https://github.com/S2ink/Web-Project3" target="_blank">
+				<img src="resources/github.svg" class="link-svg" style="height:clamp(20px, 2vw, 36px);"></a>
+			</div>
+			<span style="font-size:clamp(16px, 1vw, 20px); font-family:var(--font-styled);">
+				&copy 2023 Sam Richter
+			</span>
+		</div>
+
     </body>
 </html>

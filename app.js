@@ -80,12 +80,13 @@ scene.addTriangles(
 );
 scene.update(gl);
 
-console.log(scene);
-listActiveUniforms(gl, gl_trace);
+// console.log(scene);
+// listActiveUniforms(gl, gl_trace);
 
 
 const ui = {
 	elem_overlay_div : document.getElementById("overlay"),
+	elem_scene_options_div : document.getElementById("scene-options"),
 
 	elem_fsize_selector : document.getElementById("fixed-fsize-select"),
 	elem_fsize_display : document.getElementById("fsize-display"),
@@ -99,6 +100,7 @@ const ui = {
 	elem_bounce_limit : document.getElementById("bounce-limit"),
 	elem_sky_color : document.getElementById("sky-color"),
 	elem_fps_display: document.getElementById("fps-display"),
+	elem_selected_display: document.getElementById("selected-object-display"),
 	// elem_reset_sky : document.getElementById("reset-sky-color"),
 
 	keys : {
@@ -165,17 +167,29 @@ ui.onMouseDown = function(e) {
 		ray.direction = calcRayDirection(
 			prop, iproj_mat, iview_mat);
 		let sel = scene.trySelect(ray);
-		console.log(`Selected ${sel.type} [${sel.idx}]`);
+		ui.elem_selected_display.innerHTML = `Selected: ${sel.type} ${sel.idx}`;
+		ui.elem_scene_options_div.style.display = "inline-block";
 	} else {
 		ui.enable_camera = true;
 		vec2.copy(ui.mouse_xy2, vec2.set(
 			ui.mouse_xy, e.clientX, e.clientY) );
 	}
 }
+ui.onTouchDown = function(e) {
+	ui.enable_camera = true;
+	vec2.copy(ui.mouse_xy2, vec2.set(
+		ui.mouse_xy, e.changedTouches[0].clientX, e.changedTouches[0].clientY) );
+}
 ui.onMouseMove = function(e) {
 	if(ui.enable_camera) {
 		vec2.set(
 			ui.mouse_xy2, e.clientX, e.clientY);
+	}
+}
+ui.onTouchMove = function(e) {
+	if(ui.enable_camera) {
+		vec2.set(
+			ui.mouse_xy2, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
 	}
 }
 ui.onMouseUp = function(e) {
@@ -267,8 +281,11 @@ ui.onOverlayView = function(val) {
 }
 
 canvas.addEventListener('mousedown', ui.onMouseDown);
+canvas.addEventListener('touchstart', ui.onTouchDown);
 document.body.addEventListener('mousemove', ui.onMouseMove);
+canvas.addEventListener('touchmove', ui.onTouchMove);
 document.body.addEventListener('mouseup', ui.onMouseUp);
+document.body.addEventListener('touchend', ui.onMouseUp);
 document.body.addEventListener('keydown', ui.onKeyDown);
 document.body.addEventListener('keyup', ui.onKeyUp);
 document.addEventListener('fullscreenchange', ui.onFullScreen);
@@ -372,6 +389,8 @@ function renderTick(timestamp) {
 			canvas.width = width / ui.fsize.scale;
 			canvas.height = height / ui.fsize.scale;
 		} else {
+			// let extraw = frame.offsetWidth;
+			// console.log(extraw);
 			canvas.style.width = (width = ui.fsize._width) + 'px';
 			canvas.style.height = (height = ui.fsize._height) + 'px';
 			canvas.width = width / ui.fsize.scale;
@@ -384,6 +403,10 @@ function renderTick(timestamp) {
 				frame.style.height = 'fit-content';
 				ui.elem_fsize_selector.value = "Custom";
 			}
+			// let totalw = frame.offsetWidth, maxw = document.body.clientWidth;
+			// if(totalw > maxw) {
+			// 	console.log("oversize");
+			// }
 		}
 		ui.elem_fsize_display.innerHTML = width + 'x' + height;
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);

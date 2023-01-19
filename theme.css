@@ -31,22 +31,45 @@ body {
 	position: sticky;
 	top: 0;
 	width: 100%;
-	height: calc(clamp(30px, 4vw, 50px) + 4vw);
+	height: fit-content;
 }
 #nav img {
 	float: right;
+	margin: clamp(10px, 2vw, 25px);
 	height: clamp(30px, 4vw, 50px);	/*try making a var for this*/
-	margin: 2vw;
-	filter: invert(86%) sepia(0%) saturate(0%) hue-rotate(234deg) brightness(90%) contrast(101%);
 }
 #nav img:hover {
-    height: clamp(33px, 4.4vw, 55px);
-	filter: invert(100%) sepia(0%) saturate(7491%) hue-rotate(274deg) brightness(109%) contrast(102%);
+    height: clamp(33px, 4.4vw, 55px);	/*110% for all*/
 }
 #footer {
 	background-color: var(--theme-dark2);
+	color: var(--theme-light);
 	height: fit-content;
 	margin: 0;
+	padding: clamp(10px, 2vw, 24px);
+}
+#footer div, #footer span {
+	display: block;
+	margin: 0 auto;
+	width: fit-content;
+	text-align: center;
+}
+#footer div a {
+	color: var(--theme-light);
+	text-decoration: none;
+	font-size: clamp(16px, 1.5vw, 20px);
+	font-family: var(--font-styled);
+	margin: 2vw;
+}
+#footer div a:hover {
+	color: var(--theme-lightest)
+}
+
+.link-svg {
+	filter: invert(86%) sepia(0%) saturate(0%) hue-rotate(234deg) brightness(90%) contrast(101%);
+}
+.link-svg:hover {
+	filter: invert(100%) sepia(0%) saturate(7491%) hue-rotate(274deg) brightness(109%) contrast(102%);
 }
 
 .styled_font { font-family: var(--font-styled); }
