@@ -45,7 +45,7 @@
 		#header h4 {
 			font-size: clamp(8px, 2vw, 36px);
 			font-family: var(--font-basic);
-			font-style: italic;
+			/* font-style: italic; */
 		}
 		#webgl-logo {
 			height: clamp(36px, 5vw, 84px);
@@ -60,9 +60,9 @@
 			<img id="webgl-logo" src="resources/powered-by.svg">
 			<div id="nav">
 				<!-- These are defined in opposite order (r->l) because they are floated to the right -->
-				<a href="about.html"><img src="resources/circle-info-solid.svg"></a>
-				<a href="editor.html"><img src="resources/pen-to-square-regular.svg"></a>
-				<a href="index.html"><img src="resources/house-solid.svg"></a>
+				<a href="about.html"><img class="link-svg" src="resources/circle-info-solid.svg"></a>
+				<a href="editor.html"><img class="link-svg" src="resources/pen-to-square-regular.svg"></a>
+				<a href="index.html"><img class="link-svg" src="resources/house-solid.svg"></a>
 			</div>
 			<div id="header">
 				<h1> Ray Tracing. </h1>
@@ -85,11 +85,20 @@
 		</div>
 
 		<div id="footer">
-			<h1 class="styled_font" style="padding:3vw; margin:0; color: var(--theme-light);">
-				&copy 2023 Sam Richter | 
-				<a href="https://github.com/S2ink/Web-Project3" target="_blank">
-					<img src="resources/github.svg" style="height:2vw; filter: invert(86%) sepia(0%) saturate(0%) hue-rotate(234deg) brightness(90%) contrast(101%);"></a>
-			</h1>
+			<div>
+				<a href="index.html">Home</a>
+				<a href="editor.html">Editor</a>
+				<a href="about.html">About</a>
+				<a href="credits.html">Credits</a>
+				<a href="https://github.com/S2ink/Web-Project3" target="_blank">Source</a>
+				<hr>
+			</div>
+			<div style="margin-top:clamp(16px, 2vw, 30px)"><a href="https://github.com/S1ink" target="_blank">
+				<img src="resources/github.svg" class="link-svg" style="height:clamp(20px, 2vw, 36px);"></a>
+			</div>
+			<span style="font-size:clamp(16px, 1vw, 20px); font-family:var(--font-styled);">
+				&copy 2023 Sam Richter
+			</span>
 		</div>
 
 	</body>

@@ -175,10 +175,21 @@ ui.onMouseDown = function(e) {
 			ui.mouse_xy, e.clientX, e.clientY) );
 	}
 }
+ui.onTouchDown = function(e) {
+	ui.enable_camera = true;
+	vec2.copy(ui.mouse_xy2, vec2.set(
+		ui.mouse_xy, e.changedTouches[0].clientX, e.changedTouches[0].clientY) );
+}
 ui.onMouseMove = function(e) {
 	if(ui.enable_camera) {
 		vec2.set(
 			ui.mouse_xy2, e.clientX, e.clientY);
+	}
+}
+ui.onTouchMove = function(e) {
+	if(ui.enable_camera) {
+		vec2.set(
+			ui.mouse_xy2, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
 	}
 }
 ui.onMouseUp = function(e) {
@@ -270,8 +281,11 @@ ui.onOverlayView = function(val) {
 }
 
 canvas.addEventListener('mousedown', ui.onMouseDown);
+canvas.addEventListener('touchstart', ui.onTouchDown);
 document.body.addEventListener('mousemove', ui.onMouseMove);
+canvas.addEventListener('touchmove', ui.onTouchMove);
 document.body.addEventListener('mouseup', ui.onMouseUp);
+document.body.addEventListener('touchend', ui.onMouseUp);
 document.body.addEventListener('keydown', ui.onKeyDown);
 document.body.addEventListener('keyup', ui.onKeyUp);
 document.addEventListener('fullscreenchange', ui.onFullScreen);
