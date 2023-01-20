@@ -4,6 +4,7 @@
 	--theme-light: #C5C5C5;	/* 197, 197, 197 */
 	--theme-dark: #3F3F3F;		/* 63, 63, 63 */
     --theme-dark2: #292929;
+	--theme-light-text: #E0E0E0;
 	--theme-lightest: white;
 	--theme-darkest: black;
 	
@@ -21,15 +22,22 @@
 }
 html {
     font-family: var(--font-basic);
-    color: var(--theme-light);
+    color: var(--theme-light-text);
 }
 body {
 	margin: 0;
 /*	overflow: overlay;*/
 }
 
-a { color: var(--theme-light); }
-a:hover { color: var(--theme-lightest); }
+a {
+	color: var(--theme-light-text);
+}
+a:hover {
+	color: var(--theme-lightest);
+}
+ul {
+	list-style-type: circle;
+}
 
 #nav {
 	position: sticky;
@@ -42,7 +50,7 @@ a:hover { color: var(--theme-lightest); }
 	margin: clamp(10px, 2vw, 25px);
 	height: clamp(30px, 4vw, 50px);	/*try making a var for this*/
 }
-#nav img:hover {
+#nav a img:hover {
     height: clamp(33px, 4.4vw, 55px);	/*110% for all*/
 }
 #content {
@@ -53,6 +61,7 @@ a:hover { color: var(--theme-lightest); }
 }
 #footer {
 	background-color: var(--theme-dark2);
+	color: var(--theme-light);
 	height: fit-content;
 	margin: 0;
 	padding: 
@@ -66,10 +75,14 @@ a:hover { color: var(--theme-lightest); }
 	text-align: center;
 }
 #footer div a {
+	color: var(--theme-light);
 	text-decoration: none;
 	font-size: clamp(16px, 1.5vw, 20px);
 	font-family: var(--font-styled);
 	margin: 5vw;
+}
+#footer div a:hover {
+	color: var(--theme-lightest);
 }
 
 .link-svg {
