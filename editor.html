@@ -2,7 +2,7 @@
 <html lang="en-US">
     <head>
         <meta charset="utf-8">
-         <meta http-equiv="X-UA-Compatible" content="IE=edge"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         
 		<link rel="icon" href="resources/ray-sphere-icon.png" type="image/png" sizes="16x16">
@@ -13,6 +13,7 @@
 		
         <title>RT Editor</title>
     </head>
+
 	<style>
         #nav {
             z-index: 2;
@@ -57,7 +58,6 @@
         }
         #render-options span, #scene-options span {
             display: inline-block;
-            color: var(--theme-light);
             font-weight: bold;
         }
 		#render-options span {
@@ -70,12 +70,13 @@
 		#controls, #notes {
 			clear: left;
 			padding: 10px;
-			color: var(--theme-light);
+		}
+		summary {
 			font-weight: bold;
 		}
 	</style>
-    <body>
 
+	<body>
 		<div id="content">
 			<div id="nav">
 				<a href="about.html"><img class="link-svg" src="resources/circle-info-solid.svg"></a>
@@ -143,9 +144,12 @@
 						<li>WASD to move the camera horzontally, Q/E for down/up.</li>
 						<li>Drag the mouse in the direction you want the camera to turn.</li>
 						<li>Hold either shift to make the camera travel 5x as fast.</li>
-						<li>Ctrl + click to "select" - not implemented other than in the console.</li>
 					</ul>
-					<p>The frame can be resized by dragging the anchor at the bottom right of the frame or by selecting a preset resolution from the drop-down.</p>
+					<p>Additional Controls:</p>
+					<ul>
+						<li>Ctrl + click (in the window) to "select" - currently not implemented other than displaying.</li>
+						<li>Resize the frame freely be dragging the anchor in the bottom right corner (doesn't work on mobile).</li>
+					</ul>
 				</details>
 				<details id="notes">
 					<summary>Notes/Tips</summary>

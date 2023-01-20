@@ -21,12 +21,15 @@
 }
 html {
     font-family: var(--font-basic);
-    color: var(--light);
+    color: var(--theme-light);
 }
 body {
 	margin: 0;
 /*	overflow: overlay;*/
 }
+
+a { color: var(--theme-light); }
+a:hover { color: var(--theme-lightest); }
 
 #nav {
 	position: sticky;
@@ -50,7 +53,6 @@ body {
 }
 #footer {
 	background-color: var(--theme-dark2);
-	color: var(--theme-light);
 	height: fit-content;
 	margin: 0;
 	padding: 
@@ -64,14 +66,10 @@ body {
 	text-align: center;
 }
 #footer div a {
-	color: var(--theme-light);
 	text-decoration: none;
 	font-size: clamp(16px, 1.5vw, 20px);
 	font-family: var(--font-styled);
 	margin: 5vw;
-}
-#footer div a:hover {
-	color: var(--theme-lightest);
 }
 
 .link-svg {
@@ -84,25 +82,3 @@ body {
 .styled_font { font-family: var(--font-styled); }
 .basic_font { font-family: var(--font-basic); }
 .expression_font { font-family: var(--font-expression); }
-
-/* h1.scale_width {
-	font-size: clamp(30px, 10vw, 140px);
-}
-h2.scale_width {
-
-}
-h3.scale_width {
-	font-size: clamp(20px, 6.6vw, 100px);
-}
-h4.scale_width {
-
-}
-h5.scale_width {
-	font-size: clamp(10px, 3.3vw, 50px);
-}
-h6.scale_width {
-	font-size: clamp(8px, 2vw, 36px);
-}
-p.scale_width, span.scale_width, li.scale_width {
-
-} */
