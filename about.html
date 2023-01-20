@@ -18,10 +18,22 @@
         #nav {
             background: var(--theme-dark2);
         }
-		.info {
-			color: var(--theme-light);
+		#container {
 			margin: 0 auto;
-			width: 90%;
+			width: fit-content;
+			max-width: 90%;
+			text-align: center;
+/*			color: var(--theme-lightest);*/
+		}
+		#container div {
+			margin: clamp(10px, 2vw, 36px);
+			display: inline-block;
+			vertical-align: top;
+			text-align: left;
+			max-width: 500px;
+		}
+		#container h1 {
+			font-family: var(--font-styled);
 		}
 	</style>
 
@@ -32,20 +44,37 @@
 				<a href="editor.html"><img class="link-svg" src="resources/pen-to-square-regular.svg"></a>
 				<a href="index.html"><img class="link-svg" src="resources/house-solid.svg"></a>
 			</div>
-			<div class="info">
-				<b>
-				<p>Generally speaking, ray tracing is a "physically accurate" simulation of how light interacts with different surfaces and a camera. At the core of ray tracing are the rendering equation and all of the mathimatical equations that describe interactions like diffusion, reflection, and refraction.</p>
-				</b>
-				<p>While this demo may look quite incredible, it is NOT completely physically accurate because it does not account for more difficult lighting properties like diffraction or specular reflection. Nevertheless, it does support the following interactions, along with mixing and matching different "amounts" to describe many different surfaces:</p>
-				<ul>
-					<li>Diffusion - light scattering on rought surfaces</li>
-					<li>Reflection - perfect light reflection</li>
-					<li>Refraction - light bending when it passes between different refraction indices</li>
-				</ul>
-				<p>Another major limitation of this demo is that it can currently only render spheres and a limited amount of triangles. More professional and complete ray tracers are able to utilize more sphape definitions along with support for meshes with millions or billions of triangles. This is how 3D models work, and how movie CGI is usually rendered.</p>
-				<br>
-				<p>I would really love to put a bunch of cool information here about how ray tracing works, its applications, and the math behind it, but I don't have much time so here is a <a href="https://en.wikipedia.org/wiki/Ray_tracing_(graphics)">wikipedia link</a>. Also check out the <a href="credits.html">credits page</a> for other resources.</p>
+			
+			<div id="container">
+				<div>
+					<h1>What is Ray Tracing?</h1>
+					<p>Generally speaking, ray tracing is a "physically accurate" simulation of how light interacts with different surfaces and a camera. At the core of ray tracing are the rendering equation and all of the mathimatical equations that describe interactions like diffusion, reflection, and refraction.</p>
+				</div>
+             	<div>
+					<h1>Limitations</h1>
+					<p>While this demo may look quite incredible, it is NOT completely physically accurate because it does simulate the wave properties of light. Some missing features include:</p>
+					<ul>
+						<li>Diffraction</li>
+						<li>Polarization</li>
+						<li>Phosphorescence</li>
+						<li>Interference</li>
+						<li>Flourescence</li>
+						<li>The Doplar Effect</li>
+					</ul>
+					<p>Nevertheless, it does support the major and most noticable features of light interaction, lncluding:</p>
+					<ul>
+						<li>Diffusion - light scattering on rough surfaces</li>
+						<li>[Specular] Reflection - perfect light reflection</li>
+						<li>Refraction - light bending/splitting when it passes between different refraction indices</li>
+					</ul>
+					<p>Another major limitation of this demo is that it can only render a limited number of surfaces. More professional rendering applications allow for a multitude of shapes/volumes to be used.</p>
+				</div>
+				<div>
+					<h1>Further Learning</h1>
+					<p>Why stop here? <a href="https://en.wikipedia.org/wiki/Ray_tracing_(graphics)" target="_blank">Wikipedia</a> has much more information than I can put on this page! Also check out the <a href="credits.html">credits page</a> for other resources used in the making of this project.</p>
+				</div>
 			</div>
+		
 		</div>
 
 		<div id="footer">
