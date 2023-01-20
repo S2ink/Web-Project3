@@ -18,41 +18,74 @@
 		#nav {
             background: var(--theme-dark2);
         }
-		.info {
-			color: var(--theme-light);
+		#container {
 			margin: 0 auto;
-			width: 90%;
+			width: fit-content;
+			max-width: 90%;
+			text-align: center;
+		}
+		#container div {
+			margin: clamp(10px, 2vw, 36px);
+			display: inline-block;
+			vertical-align: top;
+			text-align: left;
+		}
+		#container h2 {
+			font-family: var(--font-styled);
+			font-size: clamp(24px, 2.4vw, 32px);
+		}
+		#container li {
+			line-height: 1.7em;
+			font-size: clamp(16px, 1.6vw, 20px);
 		}
 	</style>
 	
     <body>
-		
 		<div id="content">
 			<div id="nav">
 				<a href="about.html"><img class="link-svg" src="resources/circle-info-solid.svg"></a>
 				<a href="editor.html"><img class="link-svg" src="resources/pen-to-square-regular.svg"></a>
 				<a href="index.html"><img class="link-svg" src="resources/house-solid.svg"></a>
 			</div>
-			<div class="info">
-				<h2>Inspiration / Examples</h2>
-				<ul>
-					<li><a href="https://github.com/CalSch/raytracing-web">Web raytracing demo</a> by <a href="https://github.com/CalSch">Calvin Schwick</a></li>
-					<li><a href="https://github.com/evanw/webgl-path-tracing">A more complete web raytracer using WebGL</a> by <a href="https://github.com/evanw">Evan Wallace</a></li>
-					<li><a href="https://github.com/S1ink/WalnutApplication">My original desktop CPU raytracer in C++</a></li>
-					<li><a href="https://github.com/carl-vbn/opengl-raytracing">OpenGL desktop raytracing</a></li>
-				</ul>
-				<h2>Libraries / Technologies used</h2>
-				<ul>
-					<li><a href="https://github.com/toji/gl-matrix">GLMatrix - efficient matrix math for js</a></li>
-					<li><a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API">WebGL</a> - basically OpenGL but with Javascript bindings</li>
-				</ul>
-				<h2>RT Resources</h2>
-				<ul>
-					<li><a href="https://raytracing.github.io/">Ray Tracing in one Weekend</a> - the online book series</li>
-					<li><a href="https://www.youtube.com/playlist?list=PLlrATfBNZ98edc5GshdBtREv5asFW3yXl">YouTube playlist for RT in C++</a></li>
-					<li><a href="https://graphics.stanford.edu/courses/cs148-10-summer/docs/2006--degreve--reflection_refraction.pdf">A paper on the math for refraction that helped me</a></li>
-				</ul>
+
+			<div id="container">
+				<div>
+					<h2>Inspiration / Examples</h2>
+					<ul>
+						<li><a href="https://github.com/CalSch/raytracing-web" target="_blank">
+							Web raytracing demo</a> by <a href="https://github.com/CalSch" target="_blank">
+								Calvin Schwickerath</a></li>
+						<li><a href="https://github.com/evanw/webgl-path-tracing" target="_blank">
+							A more complete web rt demo using WebGL</a> by <a href="https://github.com/evanw" target="_blank">
+								Evan Wallace</a></li>
+						<li><a href="https://github.com/S1ink/WalnutApplication" target="_blank">
+							My original desktop CPU raytracer in C++</a></li>
+						<li><a href="https://github.com/carl-vbn/opengl-raytracing" target="_blank">
+							OpenGL desktop raytracing</a></li>
+					</ul>
+				</div>
+				<div>
+					<h2>Libraries / Technologies used</h2>
+					<ul>
+						<li><a href="https://github.com/toji/gl-matrix" target="_blank">
+							GLMatrix - efficient matrix math for js</a></li>
+						<li><a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API" target="_blank">
+							WebGL</a> - basically OpenGL but with Javascript bindings</li>
+					</ul>
+				</div>
+				<div>
+					<h2>RT Resources</h2>
+					<ul>
+						<li><a href="https://raytracing.github.io/" target="_blank">
+							Ray Tracing in one Weekend</a> - the online book series</li>
+						<li><a href="https://www.youtube.com/playlist?list=PLlrATfBNZ98edc5GshdBtREv5asFW3yXl" target="_blank">
+							YouTube playlist for RT in C++</a></li>
+						<li><a href="https://graphics.stanford.edu/courses/cs148-10-summer/docs/2006--degreve--reflection_refraction.pdf" target="_blank">
+							A paper on the math for refraction that helped me</a></li>
+					</ul>
+				</div>
 			</div>
+
 		</div>
 		
 		<div id="footer">
