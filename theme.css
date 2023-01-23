@@ -20,13 +20,32 @@
 	 - 'Staatliches'
 	*/
 }
+::-webkit-scrollbar {
+	width: 4px;
+}
+::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.6);
+}
+::-webkit-scrollbar-track {
+	background: rgba(0, 0, 0, 0.4);
+}
+::-webkit-scrollbar-thumb:hover {
+	background: rgba(255, 255, 255, 0.8);
+}
+::-webkit-scrollbar-track:hover {
+	background: rgba(0, 0, 0, 0.6);
+}
+::-webkit-scrollbar-thumb:hover + ::-webkit-scrollbar {
+	width: 12px;
+}
+
 html {
     font-family: var(--font-basic);
     color: var(--theme-light-text);
 }
 body {
 	margin: 0;
-/*	overflow: overlay;*/
+	overflow: overlay;
 }
 
 a {
