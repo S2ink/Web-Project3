@@ -30,9 +30,9 @@
 			display: inline-block;
 			vertical-align: top;
 			text-align: left;
-			max-width: 500px;
+			max-width: 480px;
 		}
-		#container h1 {
+		#container h1, #container h2 {
 			font-family: var(--font-styled);
 		}
 	</style>
@@ -48,18 +48,30 @@
 			<div id="container">
 				<div>
 					<h1>What is Ray Tracing?</h1>
-					<p>Generally speaking, ray tracing is a "physically accurate" simulation of how light interacts with different surfaces and a camera. At the core of ray tracing are the rendering equation and all of the mathimatical equations that describe interactions like diffusion, reflection, and refraction.</p>
+					<p>Generally speaking, ray tracing is a "physically accurate" simulation of how light interacts with different surfaces, 
+						volumes and a camera. At the core of ray tracing are the rendering equation and all of the mathimatical equations 
+						that describe ray-entity intersection and interactions like diffusion, reflection, and refraction.</p>
+					<!-- <h2>How does it Work?</h2>
+					<p>Before any calculations can be done, a "scene" is required which contains the following items:</p>
+					<ul>
+						<li>A camera.</li>
+						<li>Any number of objects.</li>
+						<li>A list of material definitions.</li>
+					</ul> -->
+					<a title="application at English Wikipedia, CC BY 3.0 &lt;https://creativecommons.org/licenses/by/3.0&gt;, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:BallsRender.png">
+						<img width="480" alt="BallsRender" src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/BallsRender.png/512px-BallsRender.png"></a>
 				</div>
              	<div>
 					<h1>Limitations</h1>
-					<p>While this demo may look quite incredible, it is NOT completely physically accurate because it does simulate the wave properties of light. Some missing features include:</p>
+					<p>While this demo may look quite incredible, it is NOT completely physically accurate because it doesn't simulate the wave properties of light. Some missing features include:</p>
 					<ul>
-						<li>Diffraction</li>
-						<li>Polarization</li>
-						<li>Phosphorescence</li>
-						<li>Interference</li>
-						<li>Flourescence</li>
-						<li>The Doplar Effect</li>
+						<li><a href="https://en.wikipedia.org/wiki/Diffraction" target="_blank">Diffraction</a></li>
+						<li><a href="https://en.wikipedia.org/wiki/Dispersion_(optics)" target="_blank">Dispersion</a></li>
+						<li><a href="https://en.wikipedia.org/wiki/Polarization_(physics)" target="_blank">Polarization</a></li>
+						<li><a href="https://en.wikipedia.org/wiki/Phosphorescence" target="_blank">Phosphorescence</a></li>
+						<li><a href="https://en.wikipedia.org/wiki/Wave_interference" target="_blank">Interference</a></li>
+						<li><a href="https://en.wikipedia.org/wiki/Fluorescence" target="_blank">Flourescence</a> (although this is easy to add)</li>
+						<li><a href="https://en.wikipedia.org/wiki/Doppler_effect" target="_blank">The Doplar Effect</a> (although not super applicable)</li>
 					</ul>
 					<p>Nevertheless, it does support the major and most noticable features of light interaction, lncluding:</p>
 					<ul>
@@ -72,6 +84,8 @@
 				<div>
 					<h1>Further Learning</h1>
 					<p>Why stop here? <a href="https://en.wikipedia.org/wiki/Ray_tracing_(graphics)" target="_blank">Wikipedia</a> has much more information than I can put on this page! Also check out the <a href="credits.html">credits page</a> for other resources used in the making of this project.</p>
+					<a title="Tim Babb, CC BY-SA 4.0 &lt;https://creativecommons.org/licenses/by-sa/4.0&gt;, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:Recursive_raytrace_of_a_sphere.png">
+						<img width="480" alt="Recursive raytrace of a sphere" src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Recursive_raytrace_of_a_sphere.png/512px-Recursive_raytrace_of_a_sphere.png"></a>
 				</div>
 			</div>
 		

@@ -363,6 +363,7 @@ class Scene {
 		this.triangles = new Float32ArrayTexture();
 		this.surfaces = new Float32ArrayTexture();
 		this.materials = new Float32ArrayTexture();
+		this.skycolor = vec3.create();
 		if(gl) {
 			this.attachTextures(gl, start_unit, prog);
 		}
@@ -385,6 +386,10 @@ class Scene {
 		this.surfaces.update(gl, Surface.F32_LEN);
 		this.materials.update(gl, Material.F32_LEN);
 		return this;
+	}
+
+	setSky(r, g, b) {
+		vec3.set(this.skycolor, r, g, b);
 	}
 
 	addSpheres(...spheres) {

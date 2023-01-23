@@ -40,7 +40,6 @@ function buildProgram(gl, vsource, fsource) {		// faster than calling all method
 	gl.compileShader(vshader);
 	gl.compileShader(fshader);
 	gl.linkProgram(program);
-	let end = performance.now();
 
 	if(!gl.getProgramParameter(program, gl.LINK_STATUS)) {
 		console.error(`WebGL shader program link failed in ${end - start}ms: ${gl.getProgramInfoLog(program)}`);
@@ -53,8 +52,21 @@ function buildProgram(gl, vsource, fsource) {		// faster than calling all method
 		alert("Failed to compile WebGL shader program - see console for logs.");
 		return null;
 	}
-	console.log("Compiled shaders in " + (end - start) + "ms");
+	let end = performance.now();
+	console.log("Built shader program in " + (end - start) + "ms");
 	return program;
+}
+
+function genTextureRGBA32F(gl, w, h) {
+	let t = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, t);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
+	gl.bindTexture(gl.TEXTURE_2D, null);
+	return t;
 }
 
 function listActiveUniforms(gl, program) {
@@ -123,7 +135,11 @@ const fragment_src = `#version 300 es
 uniform sampler2D acc_frame;
 uniform mat4 iview, iproj;
 uniform vec3 cam_pos;
+uniform vec3 cam_vdir;
+uniform vec3 cam_rdir;
 uniform vec2 fsize;
+uniform float focus_distance;
+uniform float aperture;
 uniform float realtime;
 uniform int samples;
 uniform int bounces;
@@ -260,6 +276,18 @@ float random_gen(in vec3 scale) {
 float srand(in float seed) { return s_random_gen(gl_FragCoord.xyz * realtime, seed); }
 float rand() { return random_gen(gl_FragCoord.xyz * realtime); }
 
+vec2 randVec2() {
+	return (vec2(
+		random_gen(_rc1_),
+		random_gen(_rc2_)
+	) * 2.0 - 1.0);
+}
+vec2 srandVec2(in float seed) {
+	return (vec2(
+		s_random_gen(_rc1_, seed),
+		s_random_gen(_rc2_, seed)
+	) * 2.0 - 1.0);
+}
 vec3 randVec3() {
 	return (vec3(
 		random_gen(_rc1_),
@@ -302,7 +330,16 @@ vec3 uniformlyRandomDirection(float seed) {
 vec3 uniformlyRandomVector(float seed) {
 	return uniformlyRandomDirection(seed) * sqrt(s_random_gen(_rc3_, seed));
 }
-vec3 randomUnitVec_Reject(float seed) {
+vec2 randomUnitVec2_Reject(float seed) {
+	while(true) {
+		vec2 test = srandVec2(seed);
+		if(dot(test, test) <= 1.0) {
+			return test;
+		}
+		seed += 1.0;
+	}
+}
+vec3 randomUnitVec3_Reject(float seed) {
 	while(true) {
 		vec3 test = srandVec3(seed);
 		if(dot(test, test) <= 1.0) {
@@ -335,7 +372,7 @@ bool _refract(in Ray src, in Hit hit, out Ray ret, in float ratio) {
 }
 bool reflectGlossy(in Ray src, in Hit hit, out Ray ret, float gloss) {
 	ret.origin = hit.normal.origin;
-	ret.direction = reflect(src.direction, hit.normal.direction) + (randomUnitVec_Reject(rseed()) * gloss);
+	ret.direction = reflect(src.direction, hit.normal.direction) + (randomUnitVec3_Reject(rseed()) * gloss);
 	return dot(ret.direction, hit.normal.direction) > 0.0;
 }
 float reflectance_approx(float cos, float ratio) {
@@ -358,7 +395,7 @@ bool refractGlossy(in Ray src, in Hit hit, out Ray ret, in float ir, in float gl
 	}
 	vec3 r_out_perp = ir * (src.direction + cos_theta * hit.normal.direction);
 	vec3 r_out_para = -sqrt(abs(1.0 - dot(r_out_perp, r_out_perp))) * hit.normal.direction;
-	ret.direction = r_out_perp + r_out_para + (randomUnitVec_Reject(rseed()) * gloss);
+	ret.direction = r_out_perp + r_out_para + (randomUnitVec3_Reject(rseed()) * gloss);
 	ret.origin = hit.normal.origin;
 	return true;
 }
@@ -366,7 +403,7 @@ bool diffuse(in Hit hit, out Ray ret) {
 	ret.origin = hit.normal.origin;
 	//ret.direction = cosineWeightedDirection(rseed(), hit.normal.direction);
 	//ret.direction = hit.normal.direction + uniformlyRandomVector(rseed());
-	ret.direction = hit.normal.direction + randomUnitVec_Reject(rseed());		// ha, my method is better
+	ret.direction = hit.normal.direction + randomUnitVec3_Reject(rseed());		// ha, my method is better
 	return true;
 }
 bool redirectRay(in Ray src, in Hit hit, in Material mat, out Ray ret) {
@@ -438,6 +475,14 @@ bool interactsTriangle(in Ray ray, in Triangle t, inout Hit hit, float t_min, fl
 vec3 getSourceRay(in vec2 proportional, in mat4 inv_proj, in mat4 inv_view) {
 	vec4 t = inv_proj * vec4( (proportional * 2.0 - 1.0), 1.0, 1.0);
 	return vec3( inv_view * vec4( normalize(vec3(t) / t.w), 0) );
+}
+void DOFRay(inout Ray ray, vec3 vdir, vec3 rdir, float aperature, float focus_dist) {
+	vec3 p = ray.direction * focus_dist;
+	vec2 r = randomUnitVec2_Reject(rseed());
+	vec3 o = ((vdir * r.x + rdir * r.y) * aperature / 2.0);
+	// vec3 o = ((vdir * srand(rseed()) + rdir * srand(rseed())) * aperature / 2.0);	// square bokeh
+	ray.direction = normalize(p - o);
+	ray.origin += o;
 }
 
 vec3 evalRaySimple(in Ray ray) {
@@ -518,19 +563,23 @@ vec3 evalRay(in Ray ray, in int bounces) {
 
 out vec4 fragColor;
 void main() {
-	Ray src = Ray(cam_pos, vec3(0.0));
+	Ray base = Ray(cam_pos, vec3(0.0));
 	vec3 clr = texelFetch(acc_frame, ivec2(gl_FragCoord.xy), 0).rgb;
 	if(simple > 0) {
 		for(int i = 0; i < samples; i++) {
 			float r = rand();
-			src.direction = getSourceRay((gl_FragCoord.xy + vec2(r)) / fsize, iproj, iview);
-			clr += evalRaySimple(src);
+			base.direction = getSourceRay((gl_FragCoord.xy + vec2(r)) / fsize, iproj, iview);
+			clr += evalRaySimple(base);
 		}
 	} else {
+		Ray dof;
 		for(int i = 0; i < samples; i++) {
 			float r = rand();
-			src.direction = getSourceRay((vec2(gl_FragCoord) + vec2(r)) / fsize, iproj, iview);
-			clr += evalRay(src, bounces);
+			base.direction = getSourceRay((vec2(gl_FragCoord) + vec2(r)) / fsize, iproj, iview);
+			dof.origin = base.origin;
+			dof.direction = base.direction;
+			DOFRay(dof, cam_vdir, cam_rdir, aperture, focus_distance);
+			clr += evalRay(dof, bounces);
 		}
 	}
 	fragColor = vec4(clr, 1.0);
