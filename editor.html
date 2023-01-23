@@ -105,30 +105,35 @@
                             <option value="2160_1440">2160x1440 (1440p)</option>
                             <option value="3840_2160">4K (Beefy GPU territory)</option>
                             <option value="Custom">Custom (Placeholder)</option>
-                        </select><button type="button" onclick="canvas.requestFullscreen()">Fullscreen</button><br>
-						
+                        </select>
+						<!-- <button type="button" onclick="frame.requestFullscreen()">Fullscreen</button><br> -->
+						<button id="fullscreen-button" type="button">Fullscreen</button><br>
 						<span>Render Downscale: (1 = none)</span><br>
-						<input id="downscale" type="number" value="1" style="width:120px"><br>
+						<input id="downscale-input" type="number" value="1" style="width:120px"><br>
 
                         <span>Camera FOV:</span><br>
-                        <input id="cam-fov" type="number" value="60" min="1" max="180" style="width:120px"><br>
+                        <input id="cam-fov-range" type="range" value="60" min="1" max="180">
+						<input id="cam-fov-input" type="number" value="60" min="1" max="180" style="width:48px"><br>
+						<span>Aperature:</span><br>
+						<input id="cam-aperture-range" type="range" min="0.0" max="10.0" value="0.1" step="0.01">
+						<input id="cam-aperture-input" type="number" min="0.0" max="10.0" value="0.1" step="0.01" style="width:48px"><br>
+						<span>Focus Distance:</span><br>
+						<input id="cam-focus-dist-range" type="range" min="0" max="100" value="3" step="0.1">
+						<input id="cam-focus-dist-input" type="number" min="0" max="100" value="3" step="0.1" style="width:48px"><br>
                         
                         <span>Samples Per Frame:</span><br>
-                        <input id="samples-ppx" type="number" value="1" min="1" max="1000" style="width:120px"><br>
-                        
+                        <input id="frame-samples-input" type="number" value="1" min="1" max="1000" style="width:120px"><br>
                         <span>Accumulation Limit:</span><br>
-                        <input id="samples-limit" type="number" value="10000" min="1" max="1000000" style="width:120px"><br>
-
+                        <input id="samples-limit-input" type="number" value="10000" min="1" max="1000000" style="width:120px"><br>
                         <span>Bounce Limit:</span><br>
-                        <input id="bounce-limit" type="number" value="5" min="1" max="100" style="width:120px"><br>
+                        <input id="bounce-limit-input" type="number" value="5" min="1" max="100" style="width:120px"><br>
 
-                        <input id="sky-color" type="color" value="#0C0C0C">
+                        <input id="sky-color-input" type="color" value="#0C0C0C">
 						<span>Sky Color</span><br>
 
-						<input id="render-simple" type="checkbox" onclick="ui.scene.onRenderChange(this.checked)">
+						<input id="render-simple-toggle" type="checkbox">
                         <span>Simple Render</span><br>
-						
-						<input id="enable-overlay" type="checkbox" onclick="ui.onOverlayView(this.checked)" checked>
+						<input id="enable-overlay-toggle" type="checkbox" checked>
 						<span>Enable Overlay</span>
                     </form>
                 </div>
