@@ -92,12 +92,12 @@ const State = {	// all application state variables
 		fov : 60,
 		aperture : 0.1,
 		focus_dist : 3,
-		nearclip : 0,
+		nearclip : 0.1,
 		farclip : 100,
 
 		updir : vec3.fromValues(0, 1, 0),
 		fdir : vec3.fromValues(0, 0, 1),
-		rdir : vec3.fromValues(1, 0, 0),
+		rdir : vec3.fromValues(-1, 0, 0),
 		vdir : vec3.fromValues(0, 1, 0),
 		pos : vec3.fromValues(0, 0, 0),
 
@@ -142,7 +142,6 @@ State.camera.view_mat = mat4.lookAt(mat4.create(), State.camera.pos, State.camer
 State.camera.proj_mat = mat4.perspective(mat4.create(), State.camera.fov * Math.PI / 180, State.frame.ratio, State.camera.nearclip, State.camera.farclip);
 State.camera.iview_mat = mat4.invert(mat4.create(), State.camera.view_mat);
 State.camera.iproj_mat = mat4.invert(mat4.create(), State.camera.proj_mat);
-console.log(State.camera);
 
 const scene = new Scene(gl, 1, gl_trace);
 scene.setSky(0.05, 0.05, 0.05);
@@ -252,7 +251,7 @@ function handleCanvasClick(e) {
 function handleMouseDrag(e) {
 	const input = State.input;
 	if(input.enabled) {
-		vec2.set(input.mouse_xy2, e.clentX, e.clientY);
+		vec2.set(input.mouse_xy2, e.clientX, e.clientY);
 	}
 }
 function handleCanvasTouch(e) {
@@ -316,7 +315,7 @@ function handleKeyUp(e) {
 
 function handleDragResize(e) {
 	const size = e[0].contentBoxSize[0];
-	const x = size.inlinSize, y = size.blockSize;
+	const x = size.inlineSize, y = size.blockSize;
 	if((x && x != State.w) || (y && y != State.h)) {
 		const f = State.frame;
 		f._new.width = x;
@@ -448,259 +447,9 @@ function handleOverlayToggle(e) {
 }
 
 
-
-// const ui = {
-// 	elem_overlay_div : document.getElementById("overlay"),
-// 	elem_scene_options_div : document.getElementById("scene-options"),
-
-// 	elem_fsize_selector : document.getElementById("fixed-fsize-select"),
-// 	elem_fsize_display : document.getElementById("fsize-display"),
-// 	elem_downscale : document.getElementById("downscale"),
-// 	elem_cam_fov : document.getElementById("cam-fov"),
-// 	elem_cam_fov2 : document.getElementById("cam-fov2"),
-// 	elem_cam_aperature : document.getElementById("cam-aperature"),
-// 	elem_cam_focus_dist : document.getElementById("cam-focus-dist"),
-// 	elem_samples_ppx : document.getElementById("samples-ppx"),
-// 	elem_samples_display : document.getElementById("total-samples-display"),
-// 	elem_samples_limit : document.getElementById("samples-limit"),
-// 	elem_bounce_limit : document.getElementById("bounce-limit"),
-// 	elem_sky_color : document.getElementById("sky-color"),
-// 	elem_fps_display: document.getElementById("fps-display"),
-// 	elem_selected_display: document.getElementById("selected-object-display"),
-
-// 	keys : {
-// 		w : false,
-// 		a : false,
-// 		s : false,
-// 		d : false,
-// 		q : false,
-// 		e : false,
-// 		shift : false,
-// 		ctrl : false,
-// 	},
-// 	mouse_xy : vec2.create(),
-// 	mouse_xy2 : vec2.create(),
-// 	enable_camera : false,
-
-// 	fsize : {
-// 		changed : false,
-// 		fixed : false,
-// 		fullscreen : false,
-// 		_width : width,		// these are both a cache for fullscreen and a buffer for resize events
-// 		_height : height,
-// 		scale : 1
-// 	},
-// 	resize_listener : null,
-
-// 	scene : {
-// 		updated : false,
-// 		simple_render : false,
-// 		skycolor : vec3.fromValues(0.05, 0.05, 0.05)
-// 	}
-
-// };
-
-// ui.downscaling = function() { return parseFloat(this.elem_downscale.value); }
-// ui.updateFov = function() { return fov != (fov = parseFloat(this.elem_cam_fov.value)); }
-// ui.aperature = function() { return parseFloat(this.elem_cam_aperature.value); }
-// ui.focusDist = function() { return parseFloat(this.elem_cam_focus_dist.value); }
-// ui.sampleRate = function() { return parseInt(this.elem_samples_ppx.value); }
-// ui.sampleLimit = function() { return parseInt(this.elem_samples_limit.value); }
-// ui.updateBounceLimit = function() { return bounces != (bounces = parseInt(this.elem_bounce_limit.value)); }
-
-// ui.keys.reset = function() {
-// 	this.w = this.a = this.s = this.d = this.q = this.e = this.shift = this.ctrl = false;
-// }
-// ui.keys.anyRaw = function() {
-// 	return this.w || this.a || this.s || this.d || this.q || this.e;
-// }
-// ui.keys.anyAlts = function() {
-// 	return this.shift || this.ctrl;
-// }
-
-// ui.zeroMouse = function() {
-// 	vec2.copy(this.mouse_xy, this.mouse_xy2);
-// }
-// ui.onMouseDown = function(e) {
-// 	if(ui.keys.ctrl) {
-// 		let rect = canvas.getBoundingClientRect();
-// 		let ray = new Ray();
-// 		let prop = vec2.fromValues(
-// 			(e.clientX - rect.left) / width,
-// 			1 - ((e.clientY - rect.top) / height));
-// 		ray.origin = camPos;
-// 		ray.direction = calcRayDirection(
-// 			prop, iproj_mat, iview_mat);
-// 		let sel = scene.trySelect(ray);
-// 		ui.elem_selected_display.innerHTML = `Selected: ${sel.type} ${sel.idx}`;
-// 		ui.elem_scene_options_div.style.display = "inline-block";
-// 	} else {
-// 		ui.enable_camera = true;
-// 		vec2.copy(ui.mouse_xy2, vec2.set(
-// 			ui.mouse_xy, e.clientX, e.clientY) );
-// 	}
-// }
-// ui.onTouchDown = function(e) {
-// 	ui.enable_camera = true;
-// 	vec2.copy(ui.mouse_xy2, vec2.set(
-// 		ui.mouse_xy, e.changedTouches[0].clientX, e.changedTouches[0].clientY) );
-// }
-// ui.onMouseMove = function(e) {
-// 	if(ui.enable_camera) {
-// 		vec2.set(
-// 			ui.mouse_xy2, e.clientX, e.clientY);
-// 	}
-// }
-// ui.onTouchMove = function(e) {
-// 	if(ui.enable_camera) {
-// 		vec2.set(
-// 			ui.mouse_xy2, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-// 	}
-// }
-// ui.onMouseUp = function(e) {
-// 	if(ui.enable_camera) {
-// 		ui.enable_camera = false;
-// 		ui.keys.reset();
-// 	}
-// }
-// ui.onKeyDown = function(e) {	// add this and all other to .prototype if this object is every reused
-// 	ui.keys.ctrl |= (e.key == 'Control');
-// 	if(ui.enable_camera) {
-// 		const k = e.key;
-// 		ui.keys.w |= (k == 'w' || k == 'W');
-// 		ui.keys.a |= (k == 'a' || k == 'A');
-// 		ui.keys.s |= (k == 's' || k == 'S');
-// 		ui.keys.d |= (k == 'd' || k == 'D');
-// 		ui.keys.q |= (k == 'q' || k == 'Q');
-// 		ui.keys.e |= (k == 'e' || k == 'E');
-// 		ui.keys.shift |= (k == 'Shift');
-// 		return false;
-// 	}
-// 	return true;
-// }
-// ui.onKeyUp = function(e) {
-// 	ui.keys.ctrl &= (e.key != 'Control');
-// 	if(ui.enable_camera) {
-// 		const k = e.key;
-// 		ui.keys.w &= (k != 'w' && k != 'W');
-// 		ui.keys.a &= (k != 'a' && k != 'A');
-// 		ui.keys.s &= (k != 's' && k != 'S');
-// 		ui.keys.d &= (k != 'd' && k != 'D');
-// 		ui.keys.q &= (k != 'q' && k != 'Q');
-// 		ui.keys.e &= (k != 'e' && k != 'E');
-// 		ui.keys.shift &= (k != 'Shift');
-// 		return false;
-// 	}
-// 	return true;
-// }
-// ui.onResize = function(e) {		// e is for entries in this one
-// 	const size = e[0].contentBoxSize[0];
-// 	const x = size.inlineSize, y = size.blockSize;
-// 	if((x && x != width) || (y && y != height)) {
-// 		ui.fsize._width = x;
-// 		ui.fsize._height = y;
-// 		ui.fsize.changed = true;
-// 		ui.fsize.fixed = false;
-// 	}
-// }
-// ui.onResSelect = function(e) {
-// 	const xy = e.target.value.split('_');
-// 	const x = parseInt(xy[0]);
-// 	const y = parseInt(xy[1]);
-// 	if((x && x != width) || (y && y != height)) {
-// 		ui.fsize._width = x;
-// 		ui.fsize._height = y;
-// 		ui.fsize.changed = true;
-// 		ui.fsize.fixed = true;
-// 	}
-// }
-// ui.onScaling = function(e) {
-// 	let v = ui.downscaling();
-// 	if(v > 0) {
-// 		ui.fsize.scale = v;
-// 		ui.fsize.changed = true;
-// 	}
-// }
-// ui.onFullScreen = function(e) {
-// 	console.log(e);
-// 	ui.fsize.fullscreen = !!document.fullscreenElement;
-// 	ui.fsize.changed = true;
-// }
-// ui.scene.onSkyChange = function(e) {
-// 	let hex = e.target.value;
-// 	let r = parseInt(hex[1] + hex[2], 16);
-// 	let g = parseInt(hex[3] + hex[4], 16);
-// 	let b = parseInt(hex[5] + hex[6], 16);
-// 	vec3.set(ui.scene.skycolor, r / 255, g / 255, b / 255);
-// 	ui.scene.updated = true;
-// }
-// ui.scene.onRenderChange = function(val) {
-// 	this.simple_render = val;
-// 	this.updated = true;
-// }
-// ui.onOverlayView = function(val) {
-// 	if(val) {
-// 		ui.elem_overlay_div.style.display = "block";
-// 	} else {
-// 		ui.elem_overlay_div.style.display = "none";
-// 	}
-// }
-
-// canvas.addEventListener('mousedown', ui.onMouseDown);
-// canvas.addEventListener('touchstart', ui.onTouchDown);
-// document.body.addEventListener('mousemove', ui.onMouseMove);
-// canvas.addEventListener('touchmove', ui.onTouchMove);
-// document.body.addEventListener('mouseup', ui.onMouseUp);
-// document.body.addEventListener('touchend', ui.onMouseUp);
-// document.body.addEventListener('keydown', ui.onKeyDown);
-// document.body.addEventListener('keyup', ui.onKeyUp);
-// document.addEventListener('fullscreenchange', ui.onFullScreen);
-// ui.elem_fsize_selector.addEventListener('change', ui.onResSelect);
-// ui.elem_downscale.addEventListener('input', ui.onScaling);
-// (ui.resize_listener = new ResizeObserver(ui.onResize)).observe(frame);
-// ui.elem_sky_color.addEventListener('input', ui.scene.onSkyChange);
-
-
-
-// const accumulater = {
-// 	framebuff : gl.createFramebuffer(),
-// 	textures : [
-// 		genTextureRGBA32F(gl, width, height),
-// 		genTextureRGBA32F(gl, width, height)
-// 	],
-// 	samples : 0,
-// 	mixWeight(sppx) { return this.samples / (this.samples + sppx); },
-// 	resetSamples() { this.samples = 0; },
-// 	regenTextures(w, h) {
-// 		gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
-// 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
-// 		gl.bindTexture(gl.TEXTURE_2D, this.textures[1]);
-// 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
-// 		gl.bindTexture(gl.TEXTURE_2D, null);
-// 		this.resetSamples();
-// 	},
-// 	renderToTexture(trace_program, sppx) {
-// 		gl.useProgram(trace_program);
-// 		gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
-// 		gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuff);
-// 		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.textures[1], 0);
-// 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-// 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-// 		this.textures.reverse();
-// 		this.samples += sppx;
-// 	},
-// 	renderTextureToFrame(render_program) {
-// 		gl.useProgram(render_program);
-// 		gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
-// 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-// 	}
-// };
-
 function initProgram() {
 	const cam = State.camera;
 	const fsize = State.frame;
-	const input = State.input;
 	gl.useProgram(gl_trace);
 
 	gl.uniformMatrix4fv(Uniforms.iview, false, cam.iview_mat);
@@ -722,7 +471,6 @@ function renderTick(timestamp) {
 	ltime = timestamp;
 
 	let updated = false;
-	
 	const cam = State.camera;
 	const fsize = State.frame;
 	const input = State.input;
@@ -748,7 +496,7 @@ function renderTick(timestamp) {
 			updated = true;
 			let dxy = vec2.sub(vec2.create(), input.mouse_xy2, input.mouse_xy);
 			vec2.scale(dxy, dxy, 0.002 * 0.8);
-			const rot = quat.multiply(
+			let rot = quat.multiply(
 				quat.create(),
 				quat.setAxisAngle(quat.create(), cam.rdir, -dxy[1]),
 				quat.setAxisAngle(quat.create(), cam.updir, -dxy[0])
@@ -809,16 +557,19 @@ function renderTick(timestamp) {
 		updated = true;
 		gl.uniform1f(Uniforms.focus_dist, cam.focus_dist);
 		gl.uniform1f(Uniforms.aperture, cam.aperture);
+		cam.updated = false;
 	}
 	if(State.render.updated) {
 		updated = true;
 		gl.uniform1i(Uniforms.bounces, State.render.bounces);
 		gl.uniform1i(Uniforms.simple, State.render.simple * 1);
+		State.render.updated = false;
 	}
 	if(State.scene.updated) {
 		updated = true;
 		gl.uniform3fv(Uniforms.sky_color, scene.skycolor);
 		// update texture arrays
+		State.scene.updated = false;
 	}
 
 	if(updated) {
